@@ -1,0 +1,13 @@
+# Blender MTL File: 'DoomGuyToyFigure.blend'
+# Material Count: 1
+
+newmtl Green
+Ns 148.840022
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.150000 0.019466
+Ks 0.208889 0.208889 0.208889
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd Untitled.png

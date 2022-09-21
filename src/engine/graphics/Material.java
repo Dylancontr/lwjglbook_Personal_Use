@@ -1,7 +1,5 @@
 package src.engine.graphics;
 
-import java.util.*;
-
 import org.joml.Vector4f;
 
 public class Material {
@@ -9,13 +7,11 @@ public class Material {
     public static final Vector4f DEFAULT_COLOR = new Vector4f(0.0f, 0.0f, 0.0f, 1.0f);
 
     private Vector4f diffuseColor, ambientColor, specularColor;
-    private List<Mesh> meshList;
     private String texturePath, normalMapPath;
     private float reflectance;
     private int materialIdx;
 
     public Material(){
-        meshList = new ArrayList<>();
         diffuseColor = DEFAULT_COLOR;
         ambientColor = DEFAULT_COLOR;
         specularColor = DEFAULT_COLOR;
@@ -23,7 +19,7 @@ public class Material {
     }
 
     public void cleanup(){
-        meshList.stream().forEach(Mesh::cleanup);
+
     }
 
     public Vector4f getDiffuseColor(){
@@ -32,10 +28,6 @@ public class Material {
 
     public void setDiffuseColor(Vector4f dC){
         diffuseColor = dC;
-    }
-
-    public List<Mesh> getMeshList(){
-        return meshList;
     }
 
     public String getTexturePath(){

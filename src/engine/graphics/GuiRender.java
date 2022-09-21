@@ -69,7 +69,7 @@ public class GuiRender {
             return;
         }
 
-        guiInstance.drawGui();
+        guiInstance.drawGui(scene);
 
         shader.bind();
 

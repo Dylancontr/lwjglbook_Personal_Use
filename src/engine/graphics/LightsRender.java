@@ -13,8 +13,8 @@ import static org.lwjgl.opengl.GL30.*;
 
 public class LightsRender {
     
-    private static final int MAX_POINT_LIGHTS = 5;
-    private static final int MAX_SPOT_LIGHTS = 5;
+    public static final int MAX_POINT_LIGHTS = 5;
+    public static final int MAX_SPOT_LIGHTS = 5;
 
     private final Shader shader;
 
@@ -82,6 +82,7 @@ public class LightsRender {
             uniformMap.createUniform("cascadeshadows[" + i + "]" + ".projViewMatrix");
             uniformMap.createUniform("cascadeshadows[" + i + "]" + ".splitDistance");
         }
+        
     }
 
     public void render(Scene scene, ShadowRender shadowRender, GBuffer gBuffer) {

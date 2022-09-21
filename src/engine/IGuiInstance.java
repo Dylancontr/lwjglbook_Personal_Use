@@ -4,7 +4,7 @@ import src.engine.scene.Scene;
 
 public interface IGuiInstance {
     
-    void drawGui();
+    void drawGui(Scene scene);
 
     boolean handleGuiInput(Scene scene, Window window);
     

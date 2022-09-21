@@ -3,6 +3,7 @@ package src.engine.graphics;
 import java.util.*;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import src.engine.scene.Entity;
 import src.engine.scene.ModelLoader;
@@ -19,6 +20,8 @@ public class Model {
     private List<Bone> boneList;
     private List<List<Animation>> animations;
 
+    private Vector3f aabbMax, aabbMin;
+
     public Model(String id, List<MeshData> mD, List<Bone> bL, List<Animation> aL){
         ID = id;
         meshDataList = mD;
@@ -28,6 +31,7 @@ public class Model {
         meshDrawDataList = new ArrayList<>();
         animations = new ArrayList<>();
         animations.add(animationList);
+
     }
 
     public void cleanup(){
@@ -75,6 +79,13 @@ public class Model {
         animations.add(ModelLoader.processAnimations(animPath, boneList));
     }
 
+    public Vector3f getAabbMax() {
+        return aabbMax;
+    }
+
+    public Vector3f getAabbMin() {
+        return aabbMin;
+    }
     
     public record Animation(String name, double duration, List<AnimatedFrame> frames) {
     }

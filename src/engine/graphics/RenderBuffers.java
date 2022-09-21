@@ -1,6 +1,7 @@
 package src.engine.graphics;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.system.MemoryUtil;
 
@@ -88,8 +89,11 @@ public class RenderBuffers {
                     indicesSize += meshData.getIndices().length;
 
                     int meshSizeInBytes = (meshData.getPositions().length + meshData.getNormals().length * 3 + meshData.getTextCoords().length) * 4;
-                    meshDrawDataList.add(new MeshDrawData(meshSizeInBytes, meshData.getMaterialIdx(), offset,
-                            meshData.getIndices().length, new AnimMeshDrawData(entity, bindingPoseOffset, weightsOffset)));
+                    meshDrawDataList.add(new MeshDrawData(
+                        meshSizeInBytes, meshData.getMaterialIdx(), offset,
+                            meshData.getIndices().length, meshData.getAabbMin(), meshData.getAabbMax(),
+                            new AnimMeshDrawData(entity, bindingPoseOffset, weightsOffset)
+                            ));
                     bindingPoseOffset += meshSizeInBytes / 4;
                     int groupSize = (int) Math.ceil((float) meshSizeInBytes / (14 * 4));
                     weightsOffset += groupSize * 2 * 4;
@@ -269,8 +273,9 @@ public class RenderBuffers {
                 indicesSize += meshData.getIndices().length;
 
                 int meshSizeInBytes = meshData.getPositions().length * 14 * 4;
-                meshDrawDataList.add(new MeshDrawData(meshSizeInBytes, meshData.getMaterialIdx(), offset,
-                        meshData.getIndices().length));
+                meshDrawDataList.add(new MeshDrawData(meshSizeInBytes, meshData.getMaterialIdx(), 
+                                    offset, meshData.getIndices().length,
+                                    meshData.getAabbMin(), meshData.getAabbMax()));
                 offset = positionsSize / 3;
             }
         }
@@ -369,9 +374,13 @@ public class RenderBuffers {
     }
     
     public record MeshDrawData(int sizeInBytes, int materialIdx, int offset, int vertices,
+                                Vector3f aabbMin, Vector3f aabbMax,
                                AnimMeshDrawData animMeshDrawData) {
-        public MeshDrawData(int sizeInBytes, int materialIdx, int offset, int vertices) {
-            this(sizeInBytes, materialIdx, offset, vertices, null);
+        public MeshDrawData(int sizeInBytes, int materialIdx, int offset, int vertices,
+        Vector3f aabbMin, Vector3f aabbMax) {
+            this(sizeInBytes, materialIdx, offset, vertices, 
+            aabbMin, aabbMax, null);
+
         }
     }
 

@@ -19,8 +19,7 @@ import src.engine.MouseInput;
 import src.engine.Window;
 import src.engine.graphics.Model;
 import src.engine.graphics.Render;
-import src.engine.graphics.Material;
-import src.engine.graphics.Mesh;
+import src.engine.graphics.RenderBuffers;
 import src.engine.scene.AnimationData;
 import src.engine.scene.Camera;
 import src.engine.scene.Entity;
@@ -189,7 +188,7 @@ public class Game implements IAppLogic{
         camera.addRotation((float) Math.toRadians(15.0f), (float) Math.toRadians(390.f));
 
         lightAngle = 45.001f;
-        //initSounds(bobEntity.getPosition(), camera);
+        initSounds(bobEntity.getPosition(), camera);
         
         lightControls = new LightControls(scene);
         scene.setGuiInstance(lightControls);
@@ -268,11 +267,11 @@ public class Game implements IAppLogic{
             Vector2f displVec = mouseInput.getDisplVec();
             camera.addRotation((float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY), (float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY));
         }
-        /* 
-         if (mouseInput.isLeftButtonPressed()) {
-             selectEntity(window, scene, mouseInput.getCurrentPos());
-            }
-        */
+        
+        if (mouseInput.isLeftButtonPressed()) {
+            selectEntity(window, scene, mouseInput.getCurrentPos());
+        }
+        
 
         SceneLights sceneLights = scene.getSceneLights();
         DirLight dirLight = sceneLights.getDirLight();
@@ -355,7 +354,7 @@ public class Game implements IAppLogic{
 
     }
 
-    /*
+    
     private void selectEntity(Window window, Scene scene, Vector2f mousePos) {
         int wdwWidth = window.getWidth();
         int wdwHeight = window.getHeight();
@@ -386,19 +385,17 @@ public class Game implements IAppLogic{
             List<Entity> entities = model.getEntityList();
             for (Entity entity : entities) {
                 modelMatrix.translate(entity.getPosition()).scale(entity.getScale());
-                for (Material material : model.getMaterialIdx()) {
-                    for (Mesh mesh : material.getMeshList()) {
-                        Vector3f aabbMin = mesh.getAabbMin();
-                        min.set(aabbMin.x, aabbMin.y, aabbMin.z, 1.0f);
-                        min.mul(modelMatrix);
-                        Vector3f aabMax = mesh.getAabbMax();
-                        max.set(aabMax.x, aabMax.y, aabMax.z, 1.0f);
-                        max.mul(modelMatrix);
-                        if (Intersectionf.intersectRayAab(center.x, center.y, center.z, mouseDir.x, mouseDir.y, mouseDir.z,
-                                min.x, min.y, min.z, max.x, max.y, max.z, nearFar) && nearFar.x < closestDistance) {
-                            closestDistance = nearFar.x;
-                            selectedEntity = entity;
-                        }
+                for (RenderBuffers.MeshDrawData mesh : model.getMeshDrawDataList()) {
+                    Vector3f aabbMin = mesh.aabbMin();
+                    min.set(aabbMin.x, aabbMin.y, aabbMin.z, 1.0f);
+                    min.mul(modelMatrix);
+                    Vector3f aabMax = mesh.aabbMax();
+                    max.set(aabMax.x, aabMax.y, aabMax.z, 1.0f);
+                    max.mul(modelMatrix);
+                    if (Intersectionf.intersectRayAab(center.x, center.y, center.z, mouseDir.x, mouseDir.y, mouseDir.z,
+                            min.x, min.y, min.z, max.x, max.y, max.z, nearFar) && nearFar.x < closestDistance) {
+                        closestDistance = nearFar.x;
+                        selectedEntity = entity;
                     }
                 }
                 modelMatrix.identity();
@@ -408,6 +405,6 @@ public class Game implements IAppLogic{
         scene.setSelectedEntity(selectedEntity);
         
     }
-    */
+    
 
 }

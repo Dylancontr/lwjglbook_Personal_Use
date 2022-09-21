@@ -2,11 +2,13 @@ package src.game;
 
 import imgui.*;
 import imgui.flag.ImGuiCond;
+import imgui.type.ImString;
 
 import java.util.List;
 
 import org.joml.*;
 import src.engine.*;
+import src.engine.graphics.LightsRender;
 import src.engine.scene.Scene;
 import src.engine.scene.lights.*;
 
@@ -29,7 +31,7 @@ public class LightControls implements IGuiInstance{
         Vector3f pos;
 
         List<PointLight> pointLights = sceneLights.getPointLights();
-        pointLightsArr = new PointLightControls[pointLights.size()];
+        pointLightsArr = new PointLightControls[LightsRender.MAX_POINT_LIGHTS];
         
         int i = 0;
         for(PointLight pointLight: pointLights){
@@ -40,7 +42,7 @@ public class LightControls implements IGuiInstance{
         }
 
         List<SpotLight> spotLights = sceneLights.getSpotLights();
-        spotLightsArr = new SpotLightControls[spotLights.size()];
+        spotLightsArr = new SpotLightControls[LightsRender.MAX_SPOT_LIGHTS];
         
         i = 0;
         for(SpotLight spotLight: spotLights){
@@ -61,7 +63,7 @@ public class LightControls implements IGuiInstance{
     }
 
     @Override
-    public void drawGui() {
+    public void drawGui(Scene scene) {
         ImGui.newFrame();
         ImGui.setNextWindowPos(0, 0, ImGuiCond.Always);
         ImGui.setNextWindowSize(450, 400);
@@ -77,54 +79,116 @@ public class LightControls implements IGuiInstance{
  
         if (ImGui.collapsingHeader("Point Light")) {
 
-            for(int i = 0; i < pointLightsArr.length; i++){
+            List<PointLight> pLights = scene.getSceneLights().getPointLights();
+            if(ImGui.button("+")){
+                if(pLights.size() < LightsRender.MAX_POINT_LIGHTS){
+                    
+                    pLights.add(new PointLight(new Vector3f(1f,1f,1f), 
+                    new Vector3f(0,0,0), 1));
+                    pointLightsArr[pLights.size() - 1] = new PointLightControls(pLights.get(pLights.size() - 1));
 
+                }else{
+                    System.out.println("Max point lights reached");
+                }
                 
-                ImGui.sliderFloat("Point Light - x: " + (i + 1), pointLightsArr[i].pointLightX, -10.0f, 10.0f, "%.2f");
-                ImGui.sliderFloat("Point Light - y: " + (i + 1), pointLightsArr[i].pointLightY, -10.0f, 10.0f, "%.2f");
-                ImGui.sliderFloat("Point Light - z: " + (i + 1), pointLightsArr[i].pointLightZ, -10.0f, 10.0f, "%.2f");
-                ImGui.colorEdit3("Point Light color: " + (i + 1), pointLightsArr[i].pointLightColor);
-                ImGui.sliderFloat("Point Light Intensity: " + (i + 1), pointLightsArr[i].pointLightIntensity, 0.0f, 1.0f, "%.2f");
-                
-                ImGui.separator();
+            }
 
+            for(int i = 0; i < pLights.size(); i++){
+
+                if(ImGui.collapsingHeader("Point Light " + (i + 1))){
+
+                    
+                    if(ImGui.button("-##PointLight" + (i+1))){
+                        pLights.remove(i);
+                        for(int j = i; j < pointLightsArr.length - 1; j++){
+                            pointLightsArr[j] = pointLightsArr[j + 1];
+                        }
+                        pointLightsArr[pointLightsArr.length - 1] = null;
+                    }
+                    
+                    if(pointLightsArr[i] != null){
+                        ImGui.sliderFloat("Point Light - x##" + (i + 1), pointLightsArr[i].pointLightX, -10.0f, 10.0f, "%.2f");
+                        ImGui.sliderFloat("Point Light - y:## " + (i + 1), pointLightsArr[i].pointLightY, -10.0f, 10.0f, "%.2f");
+                        ImGui.sliderFloat("Point Light - z:## " + (i + 1), pointLightsArr[i].pointLightZ, -10.0f, 10.0f, "%.2f");
+                        ImGui.colorEdit3("Point Light color:## " + (i + 1), pointLightsArr[i].pointLightColor);
+                        ImGui.sliderFloat("Point Light Intensity:## " + (i + 1), pointLightsArr[i].pointLightIntensity, 0.0f, 1.0f, "%.2f");
+                    
+                        ImGui.separator();
+                    }   
+                }
             }
         }
             
         if (ImGui.collapsingHeader("Spot Light")) {
-            for(int i = 0; i < spotLightsArr.length; i++){
+            
+            List<SpotLight> spLights = scene.getSceneLights().getSpotLights();
 
-                ImGui.sliderFloat("Spot Light - x: " + (i + 1), spotLightsArr[i].spotLightX, -10.0f, 10.0f, "%.2f");
-                ImGui.sliderFloat("Spot Light - y: " + (i + 1), spotLightsArr[i].spotLightY, -10.0f, 10.0f, "%.2f");
-                ImGui.sliderFloat("Spot Light - z: " + (i + 1), spotLightsArr[i].spotLightZ, -10.0f, 10.0f, "%.2f");
-                ImGui.colorEdit3("Spot Light color: " + (i + 1), spotLightsArr[i].spotLightColor);
-                ImGui.sliderFloat("Spot Light Intensity: " + (i + 1), spotLightsArr[i].spotLightIntensity, 0.0f, 1.0f, "%.2f");
+            if(ImGui.button("+")){
+                if(spLights.size() < LightsRender.MAX_POINT_LIGHTS){
+                    
+                    spLights.add(new SpotLight(new PointLight(new Vector3f(1f,1f,1f), 
+                    new Vector3f(0,1f, 1.4f), 1),
+                    new Vector3f(0, 0, -1),
+                    140f));
+
+                    spotLightsArr[spLights.size() - 1] = new SpotLightControls(spLights.get(spLights.size() - 1));
+
+                }else{
+                    System.out.println("Max spot lights reached");
+                }
                 
-                ImGui.separator();
-                
-                ImGui.sliderFloat("Spot Light cutoff: " + (i + 1), spotLightsArr[i].spotLightCuttoff, 0.0f, 360.0f, "%2.f");
-                ImGui.sliderFloat("Dir cone - x: " + (i + 1), spotLightsArr[i].dirConeX, -1.0f, 1.0f, "%.2f");
-                ImGui.sliderFloat("Dir cone - y: " + (i + 1), spotLightsArr[i].dirConeY, -1.0f, 1.0f, "%.2f");
-                ImGui.sliderFloat("Dir cone - z: " + (i + 1), spotLightsArr[i].dirConeZ, -1.0f, 1.0f, "%.2f");
-                
-                ImGui.separator();
             }
 
+            for(int i = 0; i < spLights.size(); i++){
+
+                if(ImGui.collapsingHeader("Spot Light " + (i + 1))){
+
+                    if(ImGui.button("-##SpotLight" + (i+1))){
+                        spLights.remove(i);
+                        for(int j = i; j < spotLightsArr.length - 1; j++){
+                        spotLightsArr[j] = spotLightsArr[j + 1];
+                    }
+                    spotLightsArr[spotLightsArr.length - 1] = null;
+                }
+                
+                if(spotLightsArr[i] != null){
+                    
+                    ImGui.sliderFloat("Spot Light - x##" + (i + 1), spotLightsArr[i].spotLightX, -10.0f, 10.0f, "%.2f");
+                    ImGui.sliderFloat("Spot Light - y##" + (i + 1), spotLightsArr[i].spotLightY, -10.0f, 10.0f, "%.2f");
+                    ImGui.sliderFloat("Spot Light - z##" + (i + 1), spotLightsArr[i].spotLightZ, -10.0f, 10.0f, "%.2f");
+                    ImGui.colorEdit3("Spot Light color##" + (i + 1), spotLightsArr[i].spotLightColor);
+                    ImGui.sliderFloat("Spot Light Intensity##" + (i + 1), spotLightsArr[i].spotLightIntensity, 0.0f, 1.0f, "%.2f");
+                    
+                    ImGui.separator();
+                    
+                    ImGui.sliderFloat("Spot Light cutoff##" + (i + 1), spotLightsArr[i].spotLightCuttoff, 0.0f, 360.0f, "%2.f");
+                    ImGui.sliderFloat("Dir cone - x##" + (i + 1), spotLightsArr[i].dirConeX, -1.0f, 1.0f, "%.2f");
+                    ImGui.sliderFloat("Dir cone - y##" + (i + 1), spotLightsArr[i].dirConeY, -1.0f, 1.0f, "%.2f");
+                    ImGui.sliderFloat("Dir cone - z##" + (i + 1), spotLightsArr[i].dirConeZ, -1.0f, 1.0f, "%.2f");
+                    
+                    ImGui.separator();
+                    ImGui.separator();       
+                }
+                
+            }
+                
         }
+
+    }
         
-        if (ImGui.collapsingHeader("Dir Light")) {
+    if (ImGui.collapsingHeader("Dir Light")) {
 
-            ImGui.sliderFloat("Dir Light - x", dirLightX, -1.0f, 1.0f, "%.2f");
-            ImGui.sliderFloat("Dir Light - y", dirLightY, -1.0f, 1.0f, "%.2f");
-            ImGui.sliderFloat("Dir Light - z", dirLightZ, -1.0f, 1.0f, "%.2f");
-            ImGui.colorEdit3("Dir Light color", dirLightColor);
-            ImGui.sliderFloat("Dir Light Intensity", dirLightIntensity, 0.0f, 1.0f, "%.2f");
+        ImGui.sliderFloat("Dir Light - x", dirLightX, -1.0f, 1.0f, "%.2f");
+        ImGui.sliderFloat("Dir Light - y", dirLightY, -1.0f, 1.0f, "%.2f");
+        ImGui.sliderFloat("Dir Light - z", dirLightZ, -1.0f, 1.0f, "%.2f");
+        ImGui.colorEdit3("Dir Light color", dirLightColor);
+        ImGui.sliderFloat("Dir Light Intensity", dirLightIntensity, 0.0f, 1.0f, "%.2f");
 
-        }
+    }
 
-        ImGui.end();
-        ImGui.endFrame();
-        ImGui.render();
+    ImGui.end();
+    ImGui.endFrame();
+    ImGui.render();
     }
 
     @Override

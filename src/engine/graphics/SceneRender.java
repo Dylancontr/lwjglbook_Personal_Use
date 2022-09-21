@@ -53,6 +53,7 @@ public class SceneRender {
     private void createUniforms(){
 
         uniformsMap = new UniformMap(shader.getProgramId());
+        
         uniformsMap.createUniform("projectionMatrix");
         uniformsMap.createUniform("viewMatrix");
 
@@ -73,6 +74,7 @@ public class SceneRender {
             String name = "drawElements[" + i + "]";
             uniformsMap.createUniform(name + ".modelMatrixIdx");
             uniformsMap.createUniform(name + ".materialIdx");
+            uniformsMap.createUniform(name + ".selected");
         }
 
         for (int i = 0; i < MAX_ENTITIES; i++) {
@@ -95,6 +97,7 @@ public class SceneRender {
 
         TextureCache textureCache = scene.getTextureCache();
         List<Texture> textures = textureCache.getAll().stream().toList();
+        Entity selectedEntity = scene.getSelectedEntity();
         int numTextures = textures.size();
         if (numTextures > MAX_TEXTURES) {
             Logger.warn("Only " + MAX_TEXTURES + " textures can be used");
@@ -123,6 +126,8 @@ public class SceneRender {
             for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
                 for (Entity entity : entities) {
                     String name = "drawElements[" + drawElement + "]";
+                    uniformsMap.setUniform(name + ".selected", 
+                    selectedEntity != null && selectedEntity.getID().equals(entity.getID()) ? 1 : 0);
                     uniformsMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
                     uniformsMap.setUniform(name + ".materialIdx", meshDrawData.materialIdx());
                     drawElement++;
@@ -142,6 +147,8 @@ public class SceneRender {
                 RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
                 Entity entity = animMeshDrawData.entity();
                 String name = "drawElements[" + drawElement + "]";
+                uniformsMap.setUniform(name + ".selected", 
+                selectedEntity != null && selectedEntity.getID().equals(entity.getID()) ? 1 : 0);
                 uniformsMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
                 uniformsMap.setUniform(name + ".materialIdx", meshDrawData.materialIdx());
                 drawElement++;

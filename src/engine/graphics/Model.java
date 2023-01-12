@@ -34,6 +34,10 @@ public class Model {
 
     }
 
+    public List<Bone> getBoneList(){
+        return boneList;
+    }
+
     public void cleanup(){
 
     }

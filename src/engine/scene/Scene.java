@@ -1,12 +1,16 @@
 package src.engine.scene;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import src.engine.IGuiInstance;
 import src.engine.graphics.MaterialCache;
 import src.engine.graphics.Model;
 import src.engine.graphics.TextureCache;
+import src.engine.graphics.Model.AnimatedFrame;
+import src.engine.graphics.Model.Animation;
 import src.engine.scene.lights.SceneLights;
 
 public class Scene {
@@ -34,12 +38,81 @@ public class Scene {
     }
 
     public void addEntity(Entity entity){
+
         String modelID = entity.getModelID();
         Model model = modelMap.get(modelID);
+
         if(model == null){
             throw new RuntimeException("Could not find model [" + modelID + "]");
         }
-        model.getEntityList().add(entity);
+
+        if(model.getEntityList().size() == 0){
+            model.getEntityList().add(entity);
+        }else{
+
+            int i = 1;
+            boolean added = false;
+
+            int j = 0;
+
+            for(Entity e :model.getEntityList()){
+                while(e.getID().equals(entity.getID())){
+                    j++;
+                    entity.setID(entity.getID() + "(" + j + ")");
+                }
+            }
+
+            while(!added){
+                
+                String modelIDTemp = modelID + "(" + i + ")";
+                
+                if(!modelMap.containsKey(modelIDTemp)){
+                    
+                    List<Animation> animCopy = new ArrayList<Animation>();
+                    if(model.isAnimated()){
+                        for(List<Animation> animList:  model.getAnimationsList())
+                            for(final Animation anim: animList){
+
+                                List<AnimatedFrame> framesTemp = new ArrayList<AnimatedFrame>();
+                                
+                                for(int k = 0; k < anim.frames().size(); k++){
+                                    if(anim.frames().get(k).getBonesMatrices() != null)
+                                    {
+                                        AnimatedFrame frameTemp = new AnimatedFrame(anim.frames().get(k).getBonesMatrices().clone());
+                                        framesTemp.add(frameTemp);
+                                    }
+                                }
+
+                                Animation animationTemp = new Animation(anim.name(), anim.duration(), framesTemp);
+                                animCopy.add(animationTemp);
+                            }
+                    }
+                    
+                    Model modelTemp = new Model(modelIDTemp, model.getMeshDataList(), model.getBoneList(), animCopy);
+
+                    entity.changeModel(modelTemp);
+                    modelTemp.getEntityList().add(entity);
+                    addModel(modelTemp);
+                    added = true;
+
+                }else{
+                    
+                    for(Entity ent : modelMap.get(modelIDTemp).getEntityList()){
+
+                        while(ent.getID().equals(entity.getID())){
+                            j++;
+                            entity.setID(entity.getID() + "(" + j + ")");
+                        }
+
+                    }
+                }
+
+                i++;
+                
+            }
+        
+        }
+
     }
 
     public void addModel(Model model) {
@@ -53,7 +126,6 @@ public class Scene {
     public Map<String, Model> getModelMap(){
         return modelMap;
     }
-    
 
     public Projection getProjection(){
         return projection;

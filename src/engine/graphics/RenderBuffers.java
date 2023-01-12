@@ -104,6 +104,11 @@ public class RenderBuffers {
             chunkWeightsOffset += weightsOffset;
         }
 
+        for(Model model : modelList)
+            for(Entity entity : model.getEntityList()){
+                entity.setupDone();
+            }
+
         destAnimationBuffer = glGenBuffers();
         vboIDList.add(destAnimationBuffer);
         FloatBuffer meshesBuffer = MemoryUtil.memAllocFloat(positionsSize + normalsSize * 3 + textureCoordsSize);
@@ -135,7 +140,7 @@ public class RenderBuffers {
         }
         indicesBuffer.flip();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_DYNAMIC_DRAW);
         MemoryUtil.memFree(indicesBuffer);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -187,7 +192,7 @@ public class RenderBuffers {
         dataBuffer.flip();
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, bonesMatricesBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, dataBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, dataBuffer, GL_DYNAMIC_DRAW);
         MemoryUtil.memFree(dataBuffer);
     }
 
@@ -210,7 +215,7 @@ public class RenderBuffers {
         }
         meshesBuffer.flip();
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, bindingPosesBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, meshesBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, meshesBuffer, GL_DYNAMIC_DRAW);
         MemoryUtil.memFree(meshesBuffer);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -247,7 +252,7 @@ public class RenderBuffers {
         bonesIndicesWeightsBuffer = glGenBuffers();
         vboIDList.add(bonesIndicesWeightsBuffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, bonesIndicesWeightsBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, dataBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, dataBuffer, GL_DYNAMIC_DRAW);
         MemoryUtil.memFree(dataBuffer);
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -277,6 +282,9 @@ public class RenderBuffers {
                                     offset, meshData.getIndices().length,
                                     meshData.getAabbMin(), meshData.getAabbMax()));
                 offset = positionsSize / 3;
+
+                for(Entity entity : model.getEntityList())
+                    entity.setupDone();
             }
         }
 
@@ -291,7 +299,7 @@ public class RenderBuffers {
         
         meshesBuffer.flip();
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ARRAY_BUFFER, meshesBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, meshesBuffer, GL_DYNAMIC_DRAW);
         MemoryUtil.memFree(meshesBuffer);
 
         defineVertexAttribs();
@@ -305,13 +313,18 @@ public class RenderBuffers {
                 indicesBuffer.put(meshData.getIndices());
             }
         }
+
         indicesBuffer.flip();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_DYNAMIC_DRAW);
         MemoryUtil.memFree(indicesBuffer);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
+    }
+
+    public void dupStaticModel(Entity entity, Scene scene){
+
     }
 
     private void populateMeshBuffer(FloatBuffer meshesBuffer, MeshData meshData) {
@@ -340,10 +353,6 @@ public class RenderBuffers {
             meshesBuffer.put(textCoords[startTextCoord]);
             meshesBuffer.put(textCoords[startTextCoord + 1]);
         }
-    }
-
-    public final int getStaticVaoId() {
-        return staticVaoID;
     }
 
     public int getAnimVaoID() {
@@ -382,6 +391,7 @@ public class RenderBuffers {
             aabbMin, aabbMax, null);
 
         }
+        
     }
 
 }

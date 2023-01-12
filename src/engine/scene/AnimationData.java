@@ -1,5 +1,7 @@
 package src.engine.scene;
 
+import java.util.ArrayList;
+
 import org.joml.Matrix4f;
 import src.engine.graphics.Model;
 
@@ -19,7 +21,14 @@ public class AnimationData {
 
     public AnimationData(Model.Animation cA) {
         currentFrameIdx = 0;
-        currentAnimation = cA;
+        currentAnimation = new Model.Animation(cA.name(), cA.duration(), new ArrayList<Model.AnimatedFrame>(cA.frames()));
+    }
+
+    public AnimationData(AnimationData aD){
+        if(aD == null) return;
+        currentFrameIdx = 0;
+        Model.Animation cA = aD.getCurrentAnimation();
+        currentAnimation = new Model.Animation(cA.name(), cA.duration(), new ArrayList<Model.AnimatedFrame>(cA.frames()));
     }
 
     public Model.Animation getCurrentAnimation() {

@@ -15,7 +15,7 @@ public class SkyBox {
         material = materialCache.getMaterial(meshData.getMaterialIdx());
         mesh = new Mesh(meshData);
         skyBoxModel.getMeshDataList().clear();
-        skyBoxEntity = new Entity("skyBoxEntity-entity", skyBoxModel.getID());
+        skyBoxEntity = new Entity("skyBoxEntity-entity", skyBoxModel);
     }
 
     public void cleanup() {

@@ -10,6 +10,9 @@ in vec2 outTextCoord;
 in vec4 outViewPosition;
 in vec4 outWorldPosition;
 flat in uint outMaterialIdx;
+flat in int selectedEntity;
+
+out vec4 fragColor;
 
 layout (location = 0) out vec4 buffAlbedo;
 layout (location = 1) out vec4 buffNormal;
@@ -26,7 +29,6 @@ struct Material
 
 uniform sampler2D txtSampler[MAX_TEXTURES];
 uniform Material materials[MAX_MATERIALS];
-
 vec3 calcNormal(int, vec3, vec3, vec3, vec2);
 
 void main() {
@@ -37,6 +39,7 @@ void main() {
     if (diffuse.a < 0.5) {
         discard;
     }
+
     vec4 specular = text_color + material.specular;
 
     vec3 normal = outNormal;
@@ -46,8 +49,10 @@ void main() {
 
     buffAlbedo   = vec4(diffuse.xyz, material.reflectance);
     buffNormal   = vec4(0.5 * normal + 0.5, 1.0);
+    if(selectedEntity > 0){
+        buffAlbedo = vec4((buffAlbedo.x)/2, (buffAlbedo.y)/2, 1, 1);
+    }
     buffSpecular = specular;
-
 }
 
 vec3 calcNormal(int idx, vec3 normal, vec3 tangent, vec3 bitangent, vec2 textCoords) {

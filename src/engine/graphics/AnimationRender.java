@@ -41,19 +41,19 @@ public class AnimationRender {
         int dstOffset = 0;
         for (Model model : scene.getModelMap().values()) {
             if (model.isAnimated()) {
-                for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
-                    RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
-                    Entity entity = animMeshDrawData.entity();
-                    Model.AnimatedFrame frame = entity.getAnimationData().getCurrentFrame();
-                    int groupSize = (int) Math.ceil((float) meshDrawData.sizeInBytes() / (14 * 4));
-                    uniformsMap.setUniform("drawParameters.srcOffset", animMeshDrawData.bindingPoseOffset());
-                    uniformsMap.setUniform("drawParameters.srcSize", meshDrawData.sizeInBytes() / 4);
-                    uniformsMap.setUniform("drawParameters.weightsOffset", animMeshDrawData.weightsOffset());
-                    uniformsMap.setUniform("drawParameters.bonesMatricesOffset", frame.getOffset());
-                    uniformsMap.setUniform("drawParameters.dstOffset", dstOffset);
-                    glDispatchCompute(groupSize, 1, 1);
-                    dstOffset += meshDrawData.sizeInBytes() / 4;
-                }
+                for(Entity entity : model.getEntityList())
+                    for (RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()) {
+                        RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
+                        Model.AnimatedFrame frame = entity.getAnimationData().getCurrentFrame();
+                        int groupSize = (int) Math.ceil((float) meshDrawData.sizeInBytes() / (14 * 4));
+                        uniformsMap.setUniform("drawParameters.srcOffset", animMeshDrawData.bindingPoseOffset());
+                        uniformsMap.setUniform("drawParameters.srcSize", meshDrawData.sizeInBytes() / 4);
+                        uniformsMap.setUniform("drawParameters.weightsOffset", animMeshDrawData.weightsOffset());
+                        uniformsMap.setUniform("drawParameters.bonesMatricesOffset", frame.getOffset());
+                        uniformsMap.setUniform("drawParameters.dstOffset", dstOffset);
+                        glDispatchCompute(groupSize, 1, 1);
+                        dstOffset += meshDrawData.sizeInBytes() / 4;
+                    }
             }
         }
 

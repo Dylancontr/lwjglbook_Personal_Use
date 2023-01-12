@@ -16,11 +16,13 @@ out vec2 outTextCoord;
 out vec4 outViewPosition;
 out vec4 outWorldPosition;
 out uint outMaterialIdx;
+out int selectedEntity;
 
 struct DrawElement
 {
     int modelMatrixIdx;
     int materialIdx;
+    int selected;
 };
 
 uniform mat4 projectionMatrix;
@@ -41,6 +43,7 @@ void main(){
     outMaterialIdx = drawElement.materialIdx;
     mat4 modelMatrix =  modelMatrices[drawElement.modelMatrixIdx];
     mat4 modelViewMatrix = viewMatrix * modelMatrix;
+    selectedEntity = drawElement.selected;
     outWorldPosition = modelMatrix * initPos;
     outViewPosition  = viewMatrix * outWorldPosition;
     gl_Position   = projectionMatrix * outViewPosition;

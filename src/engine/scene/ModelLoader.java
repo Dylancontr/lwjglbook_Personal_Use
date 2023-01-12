@@ -33,7 +33,8 @@ public class ModelLoader {
     }
 
     private static Model loadModel(String modelId, String modelPath, TextureCache textureCache, 
-    MaterialCache materialCache, int flags) {
+        MaterialCache materialCache, int flags) {
+
         File file = new File(modelPath);
         if (!file.exists()) {
             throw new RuntimeException("Model path does not exist [" + modelPath + "]");
@@ -85,6 +86,7 @@ public class ModelLoader {
 
     private static Material processMaterial(AIMaterial aiMaterial, String modelDir, TextureCache textureCache) {
         Material material = new Material();
+
         try (MemoryStack stack = MemoryStack.stackPush()) {
             AIColor4D color = AIColor4D.create();
 
@@ -136,6 +138,33 @@ public class ModelLoader {
             
             return material;
         }
+    }
+
+    public static Material processMaterial(String matPath, TextureCache textureCache) throws RuntimeException{
+
+        Material material;
+
+        File file = new File(matPath);
+        if (!file.exists()) {
+            throw new RuntimeException("Model path does not exist [" + matPath + "]");
+        }
+
+        String matDir = file.getParent();
+
+        AIScene aiScene = aiImportFile(matPath, 0);
+
+        if (aiScene == null) {
+            throw new RuntimeException("Error loading model [modelPath: " + matPath + "]");
+        }
+
+        AIMaterial aiMaterial = AIMaterial.create(aiScene.mMaterials().get(aiScene.mNumMaterials()-1));
+        
+        material = processMaterial(aiMaterial, matDir, textureCache);
+        
+        aiReleaseImport(aiScene);
+
+        return material;
+
     }
 
     private static MeshData processMesh(AIMesh aiMesh, List<Bone> boneList) {

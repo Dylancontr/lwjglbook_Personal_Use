@@ -3,6 +3,7 @@ package src.engine;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.tinylog.Logger;
 
+
 import java.util.concurrent.Callable;
 import org.lwjgl.system.MemoryUtil;
 
@@ -69,12 +70,6 @@ public class Window {
             Logger.error("Error code [{}], msg [{]]", errorCode, MemoryUtil.memUTF8(msgPtr))
         );
 
-        glfwSetKeyCallback(windowHandle, (window, key, scancode, action, mods) -> {
-            if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-                glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
-            }
-        });
-
         glfwMakeContextCurrent(windowHandle);
 
         if (opts.fps > 0) {
@@ -129,6 +124,10 @@ public class Window {
         } catch (Exception excp) {
             Logger.error("Error calling resize callback", excp);
         }
+    }
+
+    public long getWindowHandle(){
+        return windowHandle;
     }
 
     public void update() {

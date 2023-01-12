@@ -8,7 +8,9 @@ const float SPECULAR_POWER = 10;
 const float SHADOW_FACTOR = 0.25;
 
 in vec2 outTextCoord;
+
 out vec4 fragColor;
+
 
 struct Attenuation
 {
@@ -67,6 +69,7 @@ uniform CascadeShadow cascadeshadows[NUM_CASCADES];
 uniform sampler2D shadowMap_0;
 uniform sampler2D shadowMap_1;
 uniform sampler2D shadowMap_2;
+
 
 vec4 calcAmbient(AmbientLight, vec4);
 vec4 calcLightColor(vec4, vec4, float, vec3, float, vec3, vec3, vec3);

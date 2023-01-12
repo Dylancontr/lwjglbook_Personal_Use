@@ -48,11 +48,10 @@ public class Game implements IAppLogic{
     private float lightAngle;
     private AnimationData animationData;
     private AnimationData animationData2;
-    private Model bobModel;
     private Entity bobEntity;
+    private Entity bobEntity2;
     private List<AnimationData> animDataList;
 
-    LightControls lightControls;
 
     private SoundSource playerSoundSource;
     private SoundManager soundMgr;
@@ -61,6 +60,11 @@ public class Game implements IAppLogic{
     private Entity cubeEntity2;
 
     private float rotation;
+
+    private boolean moveMode;
+
+    TextCheck textCheck;
+    LightControls lightControls;
 
     public static void main(String[] args) {
         Game main = new Game();
@@ -74,7 +78,7 @@ public class Game implements IAppLogic{
 
     @Override
     public void cleanup() {
-        //soundMgr.cleanup();
+        soundMgr.cleanup();
     }
 
     @Override
@@ -86,14 +90,14 @@ public class Game implements IAppLogic{
         Model terrainModel = ModelLoader.loadModel(terrainModelId, "resources/models/terrain/terrain.obj",
                 scene.getTextureCache(), scene.getMaterialCache(), false);
         scene.addModel(terrainModel);
-        Entity terrainEntity = new Entity("terrainEntity", terrainModelId);
+        Entity terrainEntity = new Entity("terrainEntity", scene.getModelMap().get(terrainModelId));
         terrainEntity.setScale(100.0f);
         terrainEntity.updateModelMatrix();
         scene.addEntity(terrainEntity);
 
         
         String bobModelId = "bobModel";
-        bobModel = ModelLoader.loadModel(bobModelId, "resources/models/human/human.md5mesh",
+        Model bobModel = ModelLoader.loadModel(bobModelId, "resources/models/human/human.md5mesh",
                 scene.getTextureCache(), scene.getMaterialCache(), true);
         scene.addModel(bobModel);
         
@@ -102,7 +106,7 @@ public class Game implements IAppLogic{
         addAnimation(bobModel, "resources/models/human/JumpTest.md5anim");
         
         animationData = new AnimationData(bobModel.getAnimationList().get(0));
-        bobEntity = new Entity("bobEntity", bobModelId);
+        bobEntity = new Entity("bobEntity", scene.getModelMap().get(bobModelId));
         bobEntity.setScale(0.05f);
         bobEntity.setAnimationData(animationData);
     
@@ -113,29 +117,28 @@ public class Game implements IAppLogic{
 
         scene.addEntity(bobEntity);
 
-        Entity bobEntity2 = new Entity("bobEntity-2", bobModelId);
+
+        bobEntity2 = new Entity("bobEntity-2", scene.getModelMap().get(bobModelId));
         bobEntity2.setPosition(2, 0, 0);
         bobEntity2.setScale(0.025f);
-        bobEntity2.updateModelMatrix();
         animationData2 = new AnimationData(bobModel.getAnimationList().get(0));
         bobEntity2.setAnimationData(animationData2);
+        bobEntity2.updateModelMatrix();
         scene.addEntity(bobEntity2);
 
         Model cubeModel = ModelLoader.loadModel("cube-model", "resources/models/cube/cube.obj",
         scene.getTextureCache(), scene.getMaterialCache(), false);
         scene.addModel(cubeModel);
 
-        cubeEntity1 = new Entity("cube-entity-1", cubeModel.getID());
+        cubeEntity1 = new Entity("cube-entity", scene.getModelMap().get("cube-model"));
         cubeEntity1.setPosition(0, 2, -1);
         cubeEntity1.updateModelMatrix();
         scene.addEntity(cubeEntity1);
 
-        cubeEntity2 = new Entity("cube-entity-2", cubeModel.getID());
+        cubeEntity2 = new Entity("cube-entity", scene.getModelMap().get("cube-model"));
         cubeEntity2.setPosition(-2, 2, -1);
         cubeEntity2.updateModelMatrix();
         scene.addEntity(cubeEntity2);
-
-        render.setupData(scene);
 
         SceneLights sceneLights = new SceneLights();
         AmbientLight ambientLight = sceneLights.getAmbientLight();
@@ -191,7 +194,16 @@ public class Game implements IAppLogic{
         initSounds(bobEntity.getPosition(), camera);
         
         lightControls = new LightControls(scene);
-        scene.setGuiInstance(lightControls);
+
+        textCheck = new TextCheck();
+
+        GuiContainer container = new GuiContainer(lightControls, textCheck);
+        
+        scene.setGuiInstance(container);
+
+        render.setupData(scene);
+
+        moveMode = false;
     }
 
     private void initSounds(Vector3f position, Camera camera) {
@@ -217,68 +229,127 @@ public class Game implements IAppLogic{
     }
 
     @Override
-    public void input(Window window, Scene scene, long diffTimeMillis, boolean inputConsumed) {
+    public void input(Window window, Scene scene, long diffTimeMillis, boolean inputConsumed, Render render) {
+        
+        
         float move = diffTimeMillis * MOVEMENT_SPEED;
         Camera camera = scene.getCamera();
-        if (window.isKeyPressed(GLFW_KEY_W)) {
-            camera.moveForward(move);
-        } else if (window.isKeyPressed(GLFW_KEY_S)) {
-            camera.moveBackwards(move);
-        }
-        if (window.isKeyPressed(GLFW_KEY_A)) {
-            camera.moveLeft(move);
-        } else if (window.isKeyPressed(GLFW_KEY_D)) {
-            camera.moveRight(move);
-        }
-        if (window.isKeyPressed(GLFW_KEY_LEFT)) {
-            lightAngle -= 2.5f;
-            if (lightAngle < -90) {
-                lightAngle = -90;
+        
+        if(!inputConsumed){
+            if (window.isKeyPressed(GLFW_KEY_W)) {
+                camera.moveForward(move);
+            } else if (window.isKeyPressed(GLFW_KEY_S)) {
+                camera.moveBackwards(move);
             }
-        } else if (window.isKeyPressed(GLFW_KEY_RIGHT)) {
-            lightAngle += 2.5f;
-            if (lightAngle > 90) {
-                lightAngle = 90;
+            if (window.isKeyPressed(GLFW_KEY_A)) {
+                camera.moveLeft(move);
+            } else if (window.isKeyPressed(GLFW_KEY_D)) {
+                camera.moveRight(move);
             }
-        }else if (window.isKeyPressed(GLFW_KEY_UP)) {
-            animationData.nextFrame();
-        }else if(window.isKeyPressed(GLFW_KEY_O)){
-            try{
-                setAnimation(bobEntity, 0);
-            }catch(IndexOutOfBoundsException e){
-                e.printStackTrace();
+            if (window.isKeyPressed(GLFW_KEY_LEFT)) {
+                lightAngle -= 2.5f;
+                if (lightAngle < -90) {
+                    lightAngle = -90;
+                }
+            } else if (window.isKeyPressed(GLFW_KEY_RIGHT)) {
+                lightAngle += 2.5f;
+                if (lightAngle > 90) {
+                    lightAngle = 90;
+                }
+            }else if (window.isKeyPressed(GLFW_KEY_UP)) {
+                animationData.nextFrame();
+            }else if(window.isKeyPressed(GLFW_KEY_O)){
+                try{
+                    setAnimation(bobEntity, 0);
+                }catch(IndexOutOfBoundsException e){
+                    e.printStackTrace();
+                }
+            }else if(window.isKeyPressed(GLFW_KEY_P)){
+                try{
+                    setAnimation(bobEntity, 1);
+                }catch(IndexOutOfBoundsException e){
+                    e.printStackTrace();
+                }
+            }else if(window.isKeyPressed(GLFW_KEY_L)){
+                try{
+                    setAnimation(bobEntity, 2);
+                }catch(IndexOutOfBoundsException e){
+                    e.printStackTrace();
+                }
+            }else if(window.isKeyPressed(GLFW_KEY_C)){
+                if(scene.getSelectedEntity() != null){
+                    scene.getSelectedEntity().changeTex("resources/models/DoomGuy/DoomGuyToyFigure.obj", scene.getTextureCache(), scene.getMaterialCache());
+                }
             }
-        }else if(window.isKeyPressed(GLFW_KEY_P)){
-            try{
-                setAnimation(bobEntity, 1);
-            }catch(IndexOutOfBoundsException e){
-                e.printStackTrace();
-            }
-        }else if(window.isKeyPressed(GLFW_KEY_L)){
-            try{
-                setAnimation(bobEntity, 2);
-            }catch(IndexOutOfBoundsException e){
-                e.printStackTrace();
-            }
-        }
 
-        MouseInput mouseInput = window.getMouseInput();
-        if (mouseInput.isRightButtonPressed()) {
-            Vector2f displVec = mouseInput.getDisplVec();
-            camera.addRotation((float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY), (float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY));
+            glfwSetKeyCallback(window.getWindowHandle(), (w, key, scanode, action, mods) ->{
+
+                boolean act = (action == GLFW_PRESS || action == GLFW_REPEAT);
+
+                if(key == GLFW_KEY_G && act && scene.getSelectedEntity() != null){
+                    moveMode = !moveMode;
+                }
+
+                if(mods == GLFW_MOD_SHIFT && key == GLFW_KEY_D && act && scene.getSelectedEntity() != null && !moveMode){
+                    
+                    Entity newEnt = new Entity(scene.getSelectedEntity());
+                    newEnt.updateModelMatrix();
+                    scene.addEntity(newEnt);
+
+                    // render.setupStatic(newEnt, scene);
+
+                    newEnt.getPosition().add(new Vector3f(10,10,10));
+                    
+                    scene.setSelectedEntity(newEnt);
+                    moveMode = true;
+                }
+
+                if(key == GLFW_KEY_M && act){
+                    System.out.println(bobEntity.getMeshDrawDataList());
+                    System.out.println(bobEntity2.getMeshDrawDataList());
+                }
+
+            });
+
+            MouseInput mouseInput = window.getMouseInput();
+            if (mouseInput.isRightButtonPressed()) {
+                Vector2f displVec = mouseInput.getDisplVec();
+                camera.addRotation((float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY), (float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY));
+            }
+            
+            if (mouseInput.isLeftButtonPressed()) {
+                if(moveMode) moveMode = false;
+                else selectEntity(window, scene, mouseInput.getCurrentPos());
+            }
+
+            if(moveMode){
+                Vector2f displVec = mouseInput.getDisplVec();
+                Entity moved = scene.getSelectedEntity();
+                Vector3f camVector3f = new Vector3f();
+
+                camera.getViewMatrix().positiveX(camVector3f);
+
+                camVector3f.mul(displVec.y);
+                Vector3f moveVec = new Vector3f(camVector3f);
+
+                camera.getViewMatrix().positiveY(camVector3f);
+                camVector3f.mul(-displVec.x);
+                moveVec.add(camVector3f);
+
+                moveVec.mul(0.01f);
+
+                moved.getPosition().add(moveVec);
+
+            }
+
         }
-        
-        if (mouseInput.isLeftButtonPressed()) {
-            selectEntity(window, scene, mouseInput.getCurrentPos());
-        }
-        
 
         SceneLights sceneLights = scene.getSceneLights();
         DirLight dirLight = sceneLights.getDirLight();
         double angRad = Math.toRadians(lightAngle);
         dirLight.getDirection().x = (float) Math.sin(angRad);
         dirLight.getDirection().y = (float) Math.cos(angRad);
-        //soundMgr.updateListenerPosition(camera);
+        soundMgr.updateListenerPosition(camera);
     }
 
     @Override
@@ -292,6 +363,7 @@ public class Game implements IAppLogic{
         if (rotation > 360) {
             rotation = 0;
         }
+        
         cubeEntity1.setRotation(1, 1, 1, (float) Math.toRadians(rotation));
         cubeEntity1.updateModelMatrix();
 
@@ -354,8 +426,10 @@ public class Game implements IAppLogic{
 
     }
 
-    
     private void selectEntity(Window window, Scene scene, Vector2f mousePos) {
+
+        if(moveMode) return;
+        
         int wdwWidth = window.getWidth();
         int wdwHeight = window.getHeight();
 
@@ -385,7 +459,7 @@ public class Game implements IAppLogic{
             List<Entity> entities = model.getEntityList();
             for (Entity entity : entities) {
                 modelMatrix.translate(entity.getPosition()).scale(entity.getScale());
-                for (RenderBuffers.MeshDrawData mesh : model.getMeshDrawDataList()) {
+                for (RenderBuffers.MeshDrawData mesh : entity.getMeshDrawDataList()) {
                     Vector3f aabbMin = mesh.aabbMin();
                     min.set(aabbMin.x, aabbMin.y, aabbMin.z, 1.0f);
                     min.mul(modelMatrix);

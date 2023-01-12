@@ -20,15 +20,18 @@ public class SceneRender {
 
     private int animDrawCount;
     private int animRenderBufferHandle;
-
+    
     private Map<String, Integer> entitiesIdxMap;
-
+    
     private Shader shader;
-
+    
     private UniformMap uniformsMap;
-
+    
     private int staticDrawCount;
     private int staticRenderBufferHandle;
+
+    private int currMatSize;
+    private int currEntityMapSize;
 
     public SceneRender(){
 
@@ -39,6 +42,9 @@ public class SceneRender {
         shader = new Shader(shaderModuleDataList);
         
         entitiesIdxMap = new HashMap<>();
+
+        currMatSize = 0;
+        currEntityMapSize = 0;
 
         createUniforms();
         
@@ -85,6 +91,14 @@ public class SceneRender {
 
     public void render(Scene scene, RenderBuffers renderBuffers, GBuffer gBuffer) {
 
+        if(scene.getModelMap().size() != currEntityMapSize){
+            setupData(scene);
+        }
+
+        if(scene.getMaterialCache().getMaterialList().size() != currMatSize){
+            setupMaterialsUniform(scene.getTextureCache(), scene.getMaterialCache());
+        }
+
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.getGBufferId());
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0, 0, gBuffer.getWidth(), gBuffer.getHeight());
@@ -123,8 +137,8 @@ public class SceneRender {
         List<Model> modelList = scene.getModelMap().values().stream().filter(m -> !m.isAnimated()).toList();
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
-            for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
-                for (Entity entity : entities) {
+            for (Entity entity : entities) {
+                for (RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()) {
                     String name = "drawElements[" + drawElement + "]";
                     uniformsMap.setUniform(name + ".selected", 
                     selectedEntity != null && selectedEntity.getID().equals(entity.getID()) ? 1 : 0);
@@ -136,23 +150,22 @@ public class SceneRender {
         }
 
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, staticRenderBufferHandle);
-        glBindVertexArray(renderBuffers.getStaticVaoId());
+        glBindVertexArray(renderBuffers.getStaticVaoID());
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, staticDrawCount, 0);
 
         // Animated meshes
         drawElement = 0;
         modelList = scene.getModelMap().values().stream().filter(m -> m.isAnimated()).toList();
         for (Model model : modelList) {
-            for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
-                RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
-                Entity entity = animMeshDrawData.entity();
-                String name = "drawElements[" + drawElement + "]";
-                uniformsMap.setUniform(name + ".selected", 
-                selectedEntity != null && selectedEntity.getID().equals(entity.getID()) ? 1 : 0);
-                uniformsMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
-                uniformsMap.setUniform(name + ".materialIdx", meshDrawData.materialIdx());
-                drawElement++;
-            }
+            for(Entity entity : model.getEntityList())
+                for (RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()) {
+                    String name = "drawElements[" + drawElement + "]";
+                    uniformsMap.setUniform(name + ".selected", 
+                    selectedEntity != null && selectedEntity.getID().equals(entity.getID()) ? 1 : 0);
+                    uniformsMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
+                    uniformsMap.setUniform(name + ".materialIdx", meshDrawData.materialIdx());
+                    drawElement++;
+                }
         }
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, animRenderBufferHandle);
         glBindVertexArray(renderBuffers.getAnimVaoID());
@@ -168,26 +181,28 @@ public class SceneRender {
         List<Model> modelList = scene.getModelMap().values().stream().filter(m -> m.isAnimated()).toList();
         int numMeshes = 0;
         for (Model model : modelList) {
-            numMeshes += model.getMeshDrawDataList().size();
+            for(Entity entity : model.getEntityList())
+                numMeshes += entity.getMeshDrawDataList().size();
         }
 
         int firstIndex = 0;
         int baseInstance = 0;
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
-            for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
-                // count
-                commandBuffer.putInt(meshDrawData.vertices());
-                // instanceCount
-                commandBuffer.putInt(1);
-                commandBuffer.putInt(firstIndex);
-                // baseVertex
-                commandBuffer.putInt(meshDrawData.offset());
-                commandBuffer.putInt(baseInstance);
+            for(Entity entity : model.getEntityList())
+                for (RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()) {
+                    // count
+                    commandBuffer.putInt(meshDrawData.vertices());
+                    // instanceCount
+                    commandBuffer.putInt(1);
+                    commandBuffer.putInt(firstIndex);
+                    // baseVertex
+                    commandBuffer.putInt(meshDrawData.offset());
+                    commandBuffer.putInt(baseInstance);
 
-                firstIndex += meshDrawData.vertices();
-                baseInstance++;
-            }
+                    firstIndex += meshDrawData.vertices();
+                    baseInstance++;
+                }
         }
         commandBuffer.flip();
 
@@ -205,7 +220,8 @@ public class SceneRender {
         List<Model> modelList = scene.getModelMap().values().stream().filter(m -> !m.isAnimated()).toList();
         int numMeshes = 0;
         for (Model model : modelList) {
-            numMeshes += model.getMeshDrawDataList().size();
+            for(Entity entity : model.getEntityList())
+                numMeshes += entity.getMeshDrawDataList().size();
         }
 
         int firstIndex = 0;
@@ -214,23 +230,26 @@ public class SceneRender {
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
             int numEntities = entities.size();
-            for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
-                // count
-                commandBuffer.putInt(meshDrawData.vertices());
-                // instanceCount
-                commandBuffer.putInt(numEntities);
-                commandBuffer.putInt(firstIndex);
-                // baseVertex
-                commandBuffer.putInt(meshDrawData.offset());
-                commandBuffer.putInt(baseInstance);
+            for(Entity entity : model.getEntityList())
+                for (RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()) {
+                    // count
+                    commandBuffer.putInt(meshDrawData.vertices());
+                    // instanceCount
+                    commandBuffer.putInt(numEntities);
+                    commandBuffer.putInt(firstIndex);
+                    // baseVertex
+                    commandBuffer.putInt(meshDrawData.offset());
+                    commandBuffer.putInt(baseInstance);
 
-                firstIndex += meshDrawData.vertices();
-                baseInstance += entities.size();
-            }
+                    firstIndex += meshDrawData.vertices();
+                    baseInstance += entities.size();
+                }
         }
         commandBuffer.flip();
 
         staticDrawCount = commandBuffer.remaining() / COMMAND_SIZE;
+        
+        glDeleteBuffers(staticRenderBufferHandle);
 
         staticRenderBufferHandle = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, staticRenderBufferHandle);
@@ -271,6 +290,8 @@ public class SceneRender {
             uniformsMap.setUniform(name + ".textureIdx", idx);
         }
         shader.unbind();
+
+        currMatSize = materialList.size();
     }
 
     private void setupEntitiesData(Scene scene) {
@@ -283,6 +304,8 @@ public class SceneRender {
                 entityIdx++;
             }
         }
+
+        currEntityMapSize = scene.getModelMap().size();
     }
 
     public void setupData(Scene scene) {

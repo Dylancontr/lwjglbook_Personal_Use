@@ -3,6 +3,7 @@ package src.engine.graphics;
 
 import org.lwjgl.opengl.GL;
 import src.engine.Window;
+import src.engine.scene.Entity;
 import src.engine.scene.Scene;
 
 import static org.lwjgl.opengl.GL30.*;
@@ -92,6 +93,14 @@ public class Render{
         lightRenderFinish();
         guiRender.render(scene);
 
+    }
+
+    public RenderBuffers getRenderBuffers(){
+        return renderBuffers;
+    }
+
+    public void setupStatic(Entity entity, Scene scene){
+        renderBuffers.dupStaticModel(entity, scene);
     }
 
     public void setupData(Scene scene) {

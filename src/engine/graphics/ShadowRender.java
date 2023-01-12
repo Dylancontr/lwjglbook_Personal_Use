@@ -25,6 +25,7 @@ public class ShadowRender {
 
     private int staticDrawCount;
     private int staticRenderBufferHandle;
+    private int modelMapSize;
 
     public ShadowRender(){
 
@@ -42,6 +43,8 @@ public class ShadowRender {
             cascadeShadows.add(cascadeShadow);
 
         }
+
+        modelMapSize = 0;
 
         entitiesIdxMap = new HashMap<>();
 
@@ -75,6 +78,11 @@ public class ShadowRender {
     }
 
     public void render(Scene scene, RenderBuffers renderBuffers) {
+
+        if(scene.getModelMap().size() != modelMapSize){
+            setupData(scene);
+        }
+
         CascadeShadow.updateCascadeShadows(cascadeShadows, scene);
 
         glBindFramebuffer(GL_FRAMEBUFFER, shadowBuffer.getDepthMapFBO());
@@ -101,17 +109,17 @@ public class ShadowRender {
         List<Model> modelList = scene.getModelMap().values().stream().filter(m -> !m.isAnimated()).toList();
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
-            for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
+            //for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
                 for (Entity entity : entities) {
                     String name = "drawElements[" + drawElement + "]";
                     uniformMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
                     drawElement++;
                 }
-            }
+            //}
         }
         
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, staticRenderBufferHandle);
-        glBindVertexArray(renderBuffers.getStaticVaoId());
+        glBindVertexArray(renderBuffers.getStaticVaoID());
         for (int i = 0; i < CascadeShadow.SHADOW_MAP_CASCADE_COUNT; i++) {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowBuffer.getDepthMapTexture().getIDS()[i], 0);
 
@@ -174,6 +182,8 @@ public class ShadowRender {
                 entityIdx++;
             }
         }
+
+        modelMapSize = scene.getModelMap().size();
     }
 
     private void setupAnimCommandBuffer(Scene scene) {
@@ -188,8 +198,8 @@ public class ShadowRender {
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
             for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
-                RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
-                Entity entity = animMeshDrawData.entity();
+                //RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
+                //Entity entity = animMeshDrawData.entity();
                 // count
                 commandBuffer.putInt(meshDrawData.vertices());
                 // instanceCount

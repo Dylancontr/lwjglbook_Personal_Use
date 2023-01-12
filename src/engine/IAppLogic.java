@@ -9,7 +9,7 @@ public interface IAppLogic {
 
     void init(Window window, Scene scene, Render render);
 
-    void input(Window window, Scene scene, long diffTimeMillis, boolean inputConsumed);
+    void input(Window window, Scene scene, long diffTimeMillis, boolean inputConsumed, Render render);
 
     void update(Window window, Scene scene, long diffTimeMillis);
 }

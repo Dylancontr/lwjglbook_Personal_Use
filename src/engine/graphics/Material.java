@@ -78,4 +78,60 @@ public class Material {
         materialIdx = idx;
     }
 
+    @Override
+    public boolean equals(Object other){
+        
+        if(other == this) return true;
+
+        if(!(other instanceof Material)) return false;
+
+        Material o = (Material) other;
+
+        /*
+         * if normal path is null then see if other normal path is null:
+         *  if other normal path is not null return false
+         *  otherwise continue
+         * otherwise
+         * if normal path is not null then see if other normal path is null
+         *  if other path is null return false
+         *  otherwise check if normal path and other normal path are equal
+         *      if both are not equal return false
+         *      otherwsie continue
+         */
+        if(normalMapPath == null){
+            if(o.getNormalMapPath() != null)
+                return false;
+        }else{
+            if(o.getNormalMapPath() == null) return false;
+            else
+                if(!normalMapPath.equals(o.getNormalMapPath())) return false;
+            
+        }
+
+        /*
+         * if texture path is null then see if other texture path is null:
+         *  if other texture path is not null return false
+         *  otherwise continue
+         * otherwise
+         * if texture path is not null then see if other texture path is null
+         *  if other texture path is null return false
+         *  otherwise check if texture path and other texture path are equal
+         *      if both are not equal return false
+         *      otherwsie continue
+         */
+        if(texturePath == null){
+            if(o.getTexturePath() != null)
+                return false;
+        }else{
+            if(o.getTexturePath() == null) return false;
+            else
+                if(!getTexturePath().equals(o.getTexturePath())) return false;
+        }
+
+        return  diffuseColor.equals(o.getDiffuseColor()) &&
+                ambientColor.equals(o.getAmbientColor()) &&
+                reflectance == o.getReflectance();
+        
+    }
+
 }

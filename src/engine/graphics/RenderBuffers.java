@@ -21,8 +21,13 @@ public class RenderBuffers {
     private int bonesMatricesBuffer;
     private int destAnimationBuffer;
     private int staticVaoID;
+    
     private List<Integer> vboIDList;
 
+    private int staticArrOffset, staticIndicesOffset;
+    
+    private int animArrOffset, animIndicesOffset;
+    
     public RenderBuffers(){
         vboIDList = new ArrayList<>();
     }
@@ -60,7 +65,7 @@ public class RenderBuffers {
     }
 
     public void loadAnimatedModels(Scene scene) {
-        List<Model> modelList = scene.getModelMap().values().stream().filter(Model::isAnimated).toList();
+        List<Model> modelList = scene.getAnimModelList();
         loadBindingPoses(modelList);
         loadAnimationData(modelList);
         loadBonesIndicesWeights(modelList);
@@ -91,7 +96,8 @@ public class RenderBuffers {
                     int meshSizeInBytes = (meshData.getPositions().length + meshData.getNormals().length * 3 + meshData.getTextCoords().length) * 4;
                     meshDrawDataList.add(new MeshDrawData(
                         meshSizeInBytes, meshData.getMaterialIdx(), offset,
-                            meshData.getIndices().length, meshData.getAabbMin(), meshData.getAabbMax(),
+                            meshData.getIndices().length, indicesSize - meshData.getIndices().length,
+                            meshData.getAabbMin(), meshData.getAabbMax(),
                             new AnimMeshDrawData(entity, bindingPoseOffset, weightsOffset)
                             ));
                     bindingPoseOffset += meshSizeInBytes / 4;
@@ -113,6 +119,8 @@ public class RenderBuffers {
         vboIDList.add(destAnimationBuffer);
         FloatBuffer meshesBuffer = MemoryUtil.memAllocFloat(positionsSize + normalsSize * 3 + textureCoordsSize);
 
+        animArrOffset = meshesBuffer.capacity();
+
         for (Model model : modelList) {
             model.getEntityList().forEach(e -> {
                 for (MeshData meshData : model.getMeshDataList()) {
@@ -122,7 +130,14 @@ public class RenderBuffers {
         }
         meshesBuffer.flip();
         glBindBuffer(GL_ARRAY_BUFFER, destAnimationBuffer);
-        glBufferData(GL_ARRAY_BUFFER, meshesBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, meshesBuffer, GL_DYNAMIC_DRAW);
+
+        // for(int i = 0; i < 100; i++){
+        //     System.out.print(meshesBuffer.get(i) +", ");
+        // }
+
+        // System.out.println("\n");
+
         MemoryUtil.memFree(meshesBuffer);
 
         defineVertexAttribs();
@@ -131,6 +146,9 @@ public class RenderBuffers {
         int vboId = glGenBuffers();
         vboIDList.add(vboId);
         IntBuffer indicesBuffer = MemoryUtil.memAllocInt(indicesSize);
+
+        animIndicesOffset = indicesBuffer.capacity();
+
         for (Model model : modelList) {
             model.getEntityList().forEach(e -> {
                 for (MeshData meshData : model.getMeshDataList()) {
@@ -145,6 +163,93 @@ public class RenderBuffers {
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
+    }
+
+    public void dupAnimated(Entity entity, Scene scene){
+
+        glBindVertexArray(animVaoID);
+
+        int size = 0;
+        int indices = 0;
+
+        for(MeshDrawData drawData : entity.getMeshDrawDataList()){
+            size += drawData.sizeInBytes()/(Float.SIZE/Byte.SIZE);
+            indices += drawData.vertices();
+        }
+
+        FloatBuffer meshesBuffer = MemoryUtil.memAllocFloat(animArrOffset);
+        FloatBuffer newmeshesBuffer = MemoryUtil.memAllocFloat(animArrOffset + size);
+
+        IntBuffer indicesBuffer = MemoryUtil.memAllocInt(animIndicesOffset);
+        IntBuffer newindicesBuffer = MemoryUtil.memAllocInt(animIndicesOffset + indices);
+
+        glBindBuffer(GL_ARRAY_BUFFER, destAnimationBuffer);
+        glGetBufferSubData(GL_ARRAY_BUFFER, 0, meshesBuffer);
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIDList.get(6));
+        glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indicesBuffer);
+
+        newmeshesBuffer.put(0, meshesBuffer, 0, meshesBuffer.capacity());
+
+        newindicesBuffer.put(0, indicesBuffer, 0, indicesBuffer.capacity());
+
+        MemoryUtil.memFree(meshesBuffer);
+        MemoryUtil.memFree(indicesBuffer);
+
+        for(MeshDrawData drawData : entity.getMeshDrawDataList()){
+
+            FloatBuffer addMesh = MemoryUtil.memAllocFloat(drawData.sizeInBytes() / (Float.SIZE/Byte.SIZE));
+
+            glGetBufferSubData(GL_ARRAY_BUFFER, (drawData.offset() * (Float.SIZE/Byte.SIZE)) * 14, addMesh);
+
+            newmeshesBuffer.put(animArrOffset, addMesh, 0, addMesh.capacity());
+
+            IntBuffer addIndices = MemoryUtil.memAllocInt(drawData.vertices());
+            glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, drawData.vertexOffset()* (Integer.SIZE/Byte.SIZE), addIndices);
+            
+            newindicesBuffer.put(animIndicesOffset, addIndices, 0, addIndices.capacity());
+
+            // for(int j = 0; j < 100; j++){
+                // System.out.print(addMesh.get(j) + ", ");
+            // }
+
+            // System.out.println("\n");
+
+            MemoryUtil.memFree(addMesh);
+            MemoryUtil.memFree(addIndices);
+        }
+
+        List<MeshDrawData> drawDataList = entity.getMeshDrawDataList();
+        for(int i = 0; i < drawDataList.size(); i++){
+            MeshDrawData drawData = drawDataList.get(i);
+            AnimMeshDrawData animData = drawData.animMeshDrawData();
+            entity.getMeshDrawDataList().add(i,
+            new MeshDrawData(drawData.sizeInBytes(),  drawData.materialIdx(), animArrOffset/14,  drawData.vertices(),  animIndicesOffset,
+            drawData.aabbMin(),  drawData.aabbMax(),
+            new AnimMeshDrawData(entity, animData.bindingPoseOffset(), animData.weightsOffset())));
+    
+            entity.getMeshDrawDataList().remove(drawData);
+        }
+        
+        animArrOffset = newmeshesBuffer.capacity();
+        animIndicesOffset = newindicesBuffer.capacity();
+        
+        glBufferData(GL_ARRAY_BUFFER, newmeshesBuffer, GL_DYNAMIC_DRAW);
+
+        // for(int j = 0; j < 100; j++){
+        //     System.out.print(newmeshesBuffer.get(j) + ", ");
+        // }
+
+        // System.out.println("\n");
+
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, newindicesBuffer, GL_DYNAMIC_DRAW);
+
+        MemoryUtil.memFree(newmeshesBuffer);
+        MemoryUtil.memFree(newindicesBuffer);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+
     }
 
     private void loadAnimationData(List<Model> modelList) {
@@ -260,7 +365,7 @@ public class RenderBuffers {
 
 
     public void loadStaticModels(Scene scene) {
-        List<Model> modelList = scene.getModelMap().values().stream().filter(m -> !m.isAnimated()).toList();
+        List<Model> modelList = scene.getStaticModelList();
         staticVaoID = glGenVertexArrays();
         glBindVertexArray(staticVaoID);
         int positionsSize = 0;
@@ -275,17 +380,20 @@ public class RenderBuffers {
                 positionsSize += meshData.getPositions().length;
                 normalsSize += meshData.getNormals().length;
                 textureCoordsSize += meshData.getTextCoords().length;
+
+                int meshSizeInBytes = (meshData.getPositions().length + meshData.getNormals().length * 3 + meshData.getTextCoords().length) * (Float.SIZE/Byte.SIZE);
+                meshDrawDataList.add(new MeshDrawData(meshSizeInBytes, meshData.getMaterialIdx(), 
+                                    offset, meshData.getIndices().length, indicesSize,
+                                    meshData.getAabbMin(), meshData.getAabbMax()));
+
+                offset = positionsSize / 3;
                 indicesSize += meshData.getIndices().length;
 
-                int meshSizeInBytes = meshData.getPositions().length * 14 * 4;
-                meshDrawDataList.add(new MeshDrawData(meshSizeInBytes, meshData.getMaterialIdx(), 
-                                    offset, meshData.getIndices().length,
-                                    meshData.getAabbMin(), meshData.getAabbMax()));
-                offset = positionsSize / 3;
-
-                for(Entity entity : model.getEntityList())
-                    entity.setupDone();
             }
+
+            for(Entity entity : model.getEntityList())
+                entity.setupDone();
+
         }
 
         int vboId = glGenBuffers();
@@ -296,10 +404,19 @@ public class RenderBuffers {
                 populateMeshBuffer(meshesBuffer, meshData);
             }
         }
+
+        staticArrOffset = meshesBuffer.capacity();
         
         meshesBuffer.flip();
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
         glBufferData(GL_ARRAY_BUFFER, meshesBuffer, GL_DYNAMIC_DRAW);
+        
+        // for(int i = 0; i < meshesBuffer.capacity(); i++){
+        //     System.out.print(meshesBuffer.get(i) +", ");
+        // }
+
+        // System.out.println("\n");
+
         MemoryUtil.memFree(meshesBuffer);
 
         defineVertexAttribs();
@@ -314,9 +431,12 @@ public class RenderBuffers {
             }
         }
 
+        staticIndicesOffset = indicesBuffer.capacity();
+
         indicesBuffer.flip();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_DYNAMIC_DRAW);
+
         MemoryUtil.memFree(indicesBuffer);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -324,7 +444,90 @@ public class RenderBuffers {
     }
 
     public void dupStaticModel(Entity entity, Scene scene){
+        glBindVertexArray(staticVaoID);
 
+        int size = 0;
+        int indices = 0;
+
+        for(MeshDrawData drawData : entity.getMeshDrawDataList()){
+            size += drawData.sizeInBytes()/(Float.SIZE/Byte.SIZE);
+            indices += drawData.vertices();
+        }
+
+        FloatBuffer meshesBuffer = MemoryUtil.memAllocFloat(staticArrOffset);
+        FloatBuffer newmeshesBuffer = MemoryUtil.memAllocFloat(staticArrOffset + size);
+
+        IntBuffer indicesBuffer = MemoryUtil.memAllocInt(staticIndicesOffset);
+        IntBuffer newindicesBuffer = MemoryUtil.memAllocInt(staticIndicesOffset + indices);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, vboIDList.get(0));
+        glGetBufferSubData(GL_ARRAY_BUFFER, 0, meshesBuffer);
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIDList.get(1));
+        glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indicesBuffer);
+
+        newmeshesBuffer.put(0, meshesBuffer, 0, meshesBuffer.capacity());
+
+        newindicesBuffer.put(0, indicesBuffer, 0, indicesBuffer.capacity());
+
+        MemoryUtil.memFree(meshesBuffer);
+        MemoryUtil.memFree(indicesBuffer);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vboIDList.get(0));
+
+        for(MeshDrawData drawData : entity.getMeshDrawDataList()){
+
+            FloatBuffer addMesh = MemoryUtil.memAllocFloat(drawData.sizeInBytes() / (Float.SIZE/Byte.SIZE));
+
+            glGetBufferSubData(GL_ARRAY_BUFFER, (drawData.offset() * (Float.SIZE/Byte.SIZE)) * 14, addMesh);
+
+            newmeshesBuffer.put(staticArrOffset, addMesh, 0, addMesh.capacity());
+
+            IntBuffer addIndices = MemoryUtil.memAllocInt(drawData.vertices());
+            glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, drawData.vertexOffset()* (Integer.SIZE/Byte.SIZE), addIndices);
+            
+            newindicesBuffer.put(staticIndicesOffset, addIndices, 0, addIndices.capacity());
+
+            // System.out.println(model.getID());
+            // for(int j = 0; j < addMesh.capacity(); j++){
+            //     System.out.print(addMesh.get(j) + ", ");
+            // }
+
+            // System.out.println("\n");
+
+            MemoryUtil.memFree(addMesh);
+            MemoryUtil.memFree(addIndices);
+        }
+
+        List<MeshDrawData> drawDataList = entity.getMeshDrawDataList();
+        for(int i = 0; i < drawDataList.size(); i++){
+            MeshDrawData drawData = drawDataList.get(i);
+            entity.getMeshDrawDataList().add(i,
+            new MeshDrawData(drawData.sizeInBytes(),  drawData.materialIdx(), staticArrOffset/14,  drawData.vertices(),  staticIndicesOffset,
+            drawData.aabbMin(),  drawData.aabbMax(),
+            drawData.animMeshDrawData()));
+    
+            entity.getMeshDrawDataList().remove(drawData);
+        }
+
+        staticArrOffset = newmeshesBuffer.capacity();
+        staticIndicesOffset = newindicesBuffer.capacity();
+        
+        glBufferData(GL_ARRAY_BUFFER, newmeshesBuffer, GL_DYNAMIC_DRAW);
+
+        // for(int j = 0; j < newmeshesBuffer.capacity(); j++){
+        //     System.out.print(newmeshesBuffer.get(j) + ", ");
+        // }
+
+        // System.out.println("\n");
+
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, newindicesBuffer, GL_DYNAMIC_DRAW);
+
+        MemoryUtil.memFree(newmeshesBuffer);
+        MemoryUtil.memFree(newindicesBuffer);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
     }
 
     private void populateMeshBuffer(FloatBuffer meshesBuffer, MeshData meshData) {
@@ -382,12 +585,12 @@ public class RenderBuffers {
     public record AnimMeshDrawData(Entity entity, int bindingPoseOffset, int weightsOffset) {
     }
     
-    public record MeshDrawData(int sizeInBytes, int materialIdx, int offset, int vertices,
+    public record MeshDrawData(int sizeInBytes, int materialIdx, int offset, int vertices, int vertexOffset,
                                 Vector3f aabbMin, Vector3f aabbMax,
                                AnimMeshDrawData animMeshDrawData) {
-        public MeshDrawData(int sizeInBytes, int materialIdx, int offset, int vertices,
+        public MeshDrawData(int sizeInBytes, int materialIdx, int offset, int vertices, int vertexOffset,
         Vector3f aabbMin, Vector3f aabbMax) {
-            this(sizeInBytes, materialIdx, offset, vertices, 
+            this(sizeInBytes, materialIdx, offset, vertices, vertexOffset,
             aabbMin, aabbMax, null);
 
         }

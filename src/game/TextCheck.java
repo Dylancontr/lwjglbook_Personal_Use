@@ -65,6 +65,9 @@ public class TextCheck implements IGuiInstance{
 
                 ImGui.inputText("selected",new ImString(scene.getSelectedEntity().getID()));
                 ImGui.inputText("selected",new ImString(scene.getSelectedEntity().getModelID()));
+                ImGui.inputText("selected",new ImString(scene.getSelectedEntity() + ""));
+                ImGui.inputText("selected",new ImString(scene.getSelectedEntity().getMeshDrawDataList().get(0).animMeshDrawData().entity() + ""));
+
 
             }
 

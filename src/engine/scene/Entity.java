@@ -59,7 +59,7 @@ public class Entity {
         MeshDrawData data = drawData.get(0);
     
         drawData.set(0, 
-        new MeshDrawData(data.sizeInBytes(), idx, data.offset(), data.vertices(),
+        new MeshDrawData(data.sizeInBytes(), idx, data.offset(), data.vertices(), data.vertexOffset(),
         data.aabbMin(), data.aabbMax(), data.animMeshDrawData())
         );
         
@@ -82,7 +82,7 @@ public class Entity {
             mCache.addMaterial(mat);
             
             drawData.set(0, 
-            new MeshDrawData(data.sizeInBytes(), mat.getMaterialIdx(), data.offset(), data.vertices(),
+            new MeshDrawData(data.sizeInBytes(), mat.getMaterialIdx(), data.offset(), data.vertices(), data.vertexOffset(),
                data.aabbMin(), data.aabbMax(), data.animMeshDrawData())
                );
                
@@ -150,7 +150,7 @@ public class Entity {
 
     public void changeModel(Model m){
         modelID = m.getID();
-        drawData = m.getMeshDrawDataList();
+        if(m.getMeshDataList().size() != 0) drawData = m.getMeshDrawDataList();
     }
 
 

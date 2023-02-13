@@ -33,6 +33,12 @@ public class SceneRender {
     private int currMatSize;
     private int currEntityMapSize;
 
+    private int staticfirstIndex;
+    private int staticbaseInstance;
+    
+    private int animfirstIndex;
+    private int animbaseInstance;
+
     public SceneRender(){
 
         List<Shader.ShaderModuleData> shaderModuleDataList = new ArrayList<Shader.ShaderModuleData>();
@@ -45,6 +51,8 @@ public class SceneRender {
 
         currMatSize = 0;
         currEntityMapSize = 0;
+        staticfirstIndex = 0;
+        staticbaseInstance = 0;
 
         createUniforms();
         
@@ -134,7 +142,7 @@ public class SceneRender {
 
         // Static meshes
         int drawElement = 0;
-        List<Model> modelList = scene.getModelMap().values().stream().filter(m -> !m.isAnimated()).toList();
+        List<Model> modelList = scene.getStaticModelList();
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
             for (Entity entity : entities) {
@@ -155,7 +163,7 @@ public class SceneRender {
 
         // Animated meshes
         drawElement = 0;
-        modelList = scene.getModelMap().values().stream().filter(m -> m.isAnimated()).toList();
+        modelList = scene.getAnimModelList();
         for (Model model : modelList) {
             for(Entity entity : model.getEntityList())
                 for (RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()) {
@@ -167,6 +175,7 @@ public class SceneRender {
                     drawElement++;
                 }
         }
+
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, animRenderBufferHandle);
         glBindVertexArray(renderBuffers.getAnimVaoID());
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, 0, animDrawCount, 0);
@@ -178,15 +187,15 @@ public class SceneRender {
     }
 
     private void setupAnimCommandBuffer(Scene scene) {
-        List<Model> modelList = scene.getModelMap().values().stream().filter(m -> m.isAnimated()).toList();
+        List<Model> modelList = scene.getAnimModelList();
         int numMeshes = 0;
         for (Model model : modelList) {
             for(Entity entity : model.getEntityList())
                 numMeshes += entity.getMeshDrawDataList().size();
         }
 
-        int firstIndex = 0;
-        int baseInstance = 0;
+        animfirstIndex = 0;
+        animbaseInstance = 0;
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
             for(Entity entity : model.getEntityList())
@@ -195,18 +204,20 @@ public class SceneRender {
                     commandBuffer.putInt(meshDrawData.vertices());
                     // instanceCount
                     commandBuffer.putInt(1);
-                    commandBuffer.putInt(firstIndex);
+                    commandBuffer.putInt(animfirstIndex);
                     // baseVertex
                     commandBuffer.putInt(meshDrawData.offset());
-                    commandBuffer.putInt(baseInstance);
+                    commandBuffer.putInt(animbaseInstance);
 
-                    firstIndex += meshDrawData.vertices();
-                    baseInstance++;
+                    animfirstIndex += meshDrawData.vertices();
+                    animbaseInstance++;
                 }
         }
         commandBuffer.flip();
 
         animDrawCount = commandBuffer.remaining() / COMMAND_SIZE;
+
+        glDeleteBuffers(animRenderBufferHandle);
 
         animRenderBufferHandle = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, animRenderBufferHandle);
@@ -215,47 +226,162 @@ public class SceneRender {
         MemoryUtil.memFree(commandBuffer);
     }
 
+    private void updateAnimCommandBuffer(Scene scene, Entity entity){
+        List<Model> modelList = scene.getAnimModelList();
+        int numMeshes = 0;
+        for (Model model : modelList) {
+            for(Entity ent : model.getEntityList())
+                if(ent != entity)
+                    numMeshes += ent.getMeshDrawDataList().size();
+        }
+
+        ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
+        
+        numMeshes+=entity.getMeshDrawDataList().size();
+        
+        ByteBuffer newcommandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
+        
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, animRenderBufferHandle);
+        glGetBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commandBuffer);
+
+        newcommandBuffer.put(0, commandBuffer, 0, commandBuffer.capacity());
+
+        newcommandBuffer.position(commandBuffer.capacity());
+
+        MemoryUtil.memFree(commandBuffer);
+
+        for(RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()){
+            // count
+            newcommandBuffer.putInt(meshDrawData.vertices());
+            // instanceCount
+            newcommandBuffer.putInt(1);
+            newcommandBuffer.putInt(animfirstIndex);
+            // baseVertex
+            newcommandBuffer.putInt(meshDrawData.offset());
+            newcommandBuffer.putInt(animbaseInstance);
+
+            animfirstIndex += meshDrawData.vertices();
+            animbaseInstance += 1;
+
+        }
+
+        newcommandBuffer.position(0);
+
+        animDrawCount = newcommandBuffer.remaining() / COMMAND_SIZE;
+
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, newcommandBuffer, GL_DYNAMIC_DRAW);
+
+        // for(int i = 0; i < newcommandBuffer.capacity(); i+=4){
+        //     System.out.print(newcommandBuffer.getInt(i) + " ");
+        // }
+
+        // System.out.println();
+
+        MemoryUtil.memFree(newcommandBuffer);
+    }
 
     private void setupStaticCommandBuffer(Scene scene) {
-        List<Model> modelList = scene.getModelMap().values().stream().filter(m -> !m.isAnimated()).toList();
+        List<Model> modelList = scene.getStaticModelList();
         int numMeshes = 0;
         for (Model model : modelList) {
             for(Entity entity : model.getEntityList())
                 numMeshes += entity.getMeshDrawDataList().size();
         }
 
-        int firstIndex = 0;
-        int baseInstance = 0;
+        staticfirstIndex = 0;
+        staticbaseInstance = 0;
+
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
             int numEntities = entities.size();
-            for(Entity entity : model.getEntityList())
+            for(Entity entity : entities)
                 for (RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()) {
                     // count
                     commandBuffer.putInt(meshDrawData.vertices());
                     // instanceCount
                     commandBuffer.putInt(numEntities);
-                    commandBuffer.putInt(firstIndex);
+                    commandBuffer.putInt(staticfirstIndex);
                     // baseVertex
                     commandBuffer.putInt(meshDrawData.offset());
-                    commandBuffer.putInt(baseInstance);
+                    commandBuffer.putInt(staticbaseInstance);
 
-                    firstIndex += meshDrawData.vertices();
-                    baseInstance += entities.size();
+                    staticfirstIndex += meshDrawData.vertices();
+                    staticbaseInstance += numEntities;
                 }
         }
+        
         commandBuffer.flip();
 
         staticDrawCount = commandBuffer.remaining() / COMMAND_SIZE;
-        
-        glDeleteBuffers(staticRenderBufferHandle);
 
         staticRenderBufferHandle = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, staticRenderBufferHandle);
         glBufferData(GL_DRAW_INDIRECT_BUFFER, commandBuffer, GL_DYNAMIC_DRAW);
 
+        // for(int i = 0; i < commandBuffer.capacity(); i+=4){
+        //     System.out.print(commandBuffer.getInt(i) + " ");
+        // }
+
+        // System.out.println();
+
         MemoryUtil.memFree(commandBuffer);
+    }
+
+    private void updateStaticCommandBuffer(Scene scene, Entity entity){
+ 
+        List<Model> modelList = scene.getStaticModelList();
+        int numMeshes = 0;
+        for (Model model : modelList) {
+            for(Entity ent : model.getEntityList())
+                if(ent != entity)
+                    numMeshes += ent.getMeshDrawDataList().size();
+        }
+
+        ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
+        
+        numMeshes+=entity.getMeshDrawDataList().size();
+        
+        ByteBuffer newcommandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
+        
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, staticRenderBufferHandle);
+        glGetBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commandBuffer);
+
+        newcommandBuffer.put(0, commandBuffer, 0, commandBuffer.capacity());
+
+        newcommandBuffer.position(commandBuffer.capacity());
+
+        MemoryUtil.memFree(commandBuffer);
+
+        for(RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()){
+            // count
+            newcommandBuffer.putInt(meshDrawData.vertices());
+            // instanceCount
+            newcommandBuffer.putInt(1);
+            newcommandBuffer.putInt(staticfirstIndex);
+            // baseVertex
+            newcommandBuffer.putInt(meshDrawData.offset());
+            newcommandBuffer.putInt(staticbaseInstance);
+
+            staticfirstIndex += meshDrawData.vertices();
+            staticbaseInstance += 1;
+
+        }
+
+        newcommandBuffer.position(0);
+
+        staticDrawCount = newcommandBuffer.remaining() / COMMAND_SIZE;
+
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, newcommandBuffer, GL_DYNAMIC_DRAW);
+
+        // for(int i = 0; i < newcommandBuffer.capacity(); i+=4){
+        //     System.out.print(newcommandBuffer.getInt(i) + " ");
+        // }
+
+        // System.out.println();
+
+        MemoryUtil.memFree(newcommandBuffer);
+
     }
 
     private void setupMaterialsUniform(TextureCache textureCache, MaterialCache materialCache) {
@@ -312,6 +438,21 @@ public class SceneRender {
         setupEntitiesData(scene);
         setupStaticCommandBuffer(scene);
         setupAnimCommandBuffer(scene);
+        setupMaterialsUniform(scene.getTextureCache(), scene.getMaterialCache());
+    }
+
+    public void updateData(Scene scene, Entity entity, boolean animated) {
+        setupEntitiesData(scene);
+        
+        if(!animated){
+            updateStaticCommandBuffer(scene, entity);
+            setupAnimCommandBuffer(scene);
+        }
+        else{
+            updateAnimCommandBuffer(scene, entity);
+            setupStaticCommandBuffer(scene);
+        }
+
         setupMaterialsUniform(scene.getTextureCache(), scene.getMaterialCache());
     }
 

@@ -95,7 +95,6 @@ public class Game implements IAppLogic{
         terrainEntity.updateModelMatrix();
         scene.addEntity(terrainEntity);
 
-        
         String bobModelId = "bobModel";
         Model bobModel = ModelLoader.loadModel(bobModelId, "resources/models/human/human.md5mesh",
                 scene.getTextureCache(), scene.getMaterialCache(), true);
@@ -113,10 +112,8 @@ public class Game implements IAppLogic{
         setAnimation(bobEntity, 0);
 
         bobEntity.updateModelMatrix();
-        
 
         scene.addEntity(bobEntity);
-
 
         bobEntity2 = new Entity("bobEntity-2", scene.getModelMap().get(bobModelId));
         bobEntity2.setPosition(2, 0, 0);
@@ -296,17 +293,13 @@ public class Game implements IAppLogic{
                     newEnt.updateModelMatrix();
                     scene.addEntity(newEnt);
 
-                    // render.setupStatic(newEnt, scene);
-
-                    newEnt.getPosition().add(new Vector3f(10,10,10));
-                    
+                    if(!scene.getModelMap().get((newEnt.getModelID())).isAnimated())
+                        render.dupStatic(newEnt, scene);
+                    else
+                        render.dupAnimated(newEnt, scene);
+                        
                     scene.setSelectedEntity(newEnt);
                     moveMode = true;
-                }
-
-                if(key == GLFW_KEY_M && act){
-                    System.out.println(bobEntity.getMeshDrawDataList());
-                    System.out.println(bobEntity2.getMeshDrawDataList());
                 }
 
             });
@@ -340,6 +333,8 @@ public class Game implements IAppLogic{
 
                 moved.getPosition().add(moveVec);
 
+                moved.updateModelMatrix();
+
             }
 
         }
@@ -350,6 +345,7 @@ public class Game implements IAppLogic{
         dirLight.getDirection().x = (float) Math.sin(angRad);
         dirLight.getDirection().y = (float) Math.cos(angRad);
         soundMgr.updateListenerPosition(camera);
+
     }
 
     @Override
@@ -369,6 +365,7 @@ public class Game implements IAppLogic{
 
         cubeEntity2.setRotation(1, 1, 1, (float) Math.toRadians(360 - rotation));
         cubeEntity2.updateModelMatrix();
+
     }
 
     public void updateTerrain(Scene scene) {

@@ -99,8 +99,14 @@ public class Render{
         return renderBuffers;
     }
 
-    public void setupStatic(Entity entity, Scene scene){
+    public void dupStatic(Entity entity, Scene scene){
         renderBuffers.dupStaticModel(entity, scene);
+        sceneRender.updateData(scene, entity, false);
+    }
+
+    public void dupAnimated(Entity entity, Scene scene){
+        renderBuffers.dupAnimated(entity, scene);
+        sceneRender.updateData(scene, entity, true);
     }
 
     public void setupData(Scene scene) {

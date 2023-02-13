@@ -106,7 +106,7 @@ public class ShadowRender {
 
         // Static meshes
         int drawElement = 0;
-        List<Model> modelList = scene.getModelMap().values().stream().filter(m -> !m.isAnimated()).toList();
+        List<Model> modelList = scene.getStaticModelList();
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
             //for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
@@ -131,15 +131,16 @@ public class ShadowRender {
 
         // Anim meshes
         drawElement = 0;
-        modelList = scene.getModelMap().values().stream().filter(m -> m.isAnimated()).toList();
+        modelList = scene.getAnimModelList();
         for (Model model : modelList) {
-            for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
-                RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
-                Entity entity = animMeshDrawData.entity();
-                String name = "drawElements[" + drawElement + "]";
-                uniformMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
-                drawElement++;
-            }
+            for(Entity ent : model.getEntityList())
+                for (RenderBuffers.MeshDrawData meshDrawData : ent.getMeshDrawDataList()) {
+                    RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
+                    Entity entity = animMeshDrawData.entity();
+                    String name = "drawElements[" + drawElement + "]";
+                    uniformMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
+                    drawElement++;
+                }
         }
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, animRenderBufferHandle);
         glBindVertexArray(renderBuffers.getAnimVaoID());
@@ -172,6 +173,12 @@ public class ShadowRender {
         setupAnimCommandBuffer(scene);
     }
 
+    public void updateData(Scene scene, Entity entity){
+        setupEntitiesData(scene);
+        setupStaticCommandBuffer(scene);
+        setupAnimCommandBuffer(scene);
+    }
+
     private void setupEntitiesData(Scene scene) {
         entitiesIdxMap.clear();
         int entityIdx = 0;
@@ -187,17 +194,19 @@ public class ShadowRender {
     }
 
     private void setupAnimCommandBuffer(Scene scene) {
-        List<Model> modelList = scene.getModelMap().values().stream().filter(m -> m.isAnimated()).toList();
+        List<Model> modelList = scene.getAnimModelList();
         int numMeshes = 0;
         for (Model model : modelList) {
-            numMeshes += model.getMeshDrawDataList().size();
+            for(Entity ent : model.getEntityList())
+            numMeshes += ent.getMeshDrawDataList().size();
         }
 
         int firstIndex = 0;
         int baseInstance = 0;
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
-            for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
+            for(Entity ent: model.getEntityList())
+            for (RenderBuffers.MeshDrawData meshDrawData : ent.getMeshDrawDataList()) {
                 //RenderBuffers.AnimMeshDrawData animMeshDrawData = meshDrawData.animMeshDrawData();
                 //Entity entity = animMeshDrawData.entity();
                 // count
@@ -217,6 +226,8 @@ public class ShadowRender {
 
         animDrawCount = commandBuffer.remaining() / COMMAND_SIZE;
 
+        glDeleteBuffers(animRenderBufferHandle);
+
         animRenderBufferHandle = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, animRenderBufferHandle);
         glBufferData(GL_DRAW_INDIRECT_BUFFER, commandBuffer, GL_DYNAMIC_DRAW);
@@ -225,14 +236,14 @@ public class ShadowRender {
     }
 
     private void setupStaticCommandBuffer(Scene scene) {
-        List<Model> modelList = scene.getModelMap().values().stream().filter(m -> !m.isAnimated()).toList();
+        List<Model> modelList = scene.getStaticModelList();
         Map<String, Integer> entitiesIdxMap = new HashMap<>();
         int entityIdx = 0;
         int numMeshes = 0;
         for (Model model : scene.getModelMap().values()) {
             List<Entity> entities = model.getEntityList();
-            numMeshes += model.getMeshDrawDataList().size();
             for (Entity entity : entities) {
+                numMeshes += entity.getMeshDrawDataList().size();
                 entitiesIdxMap.put(entity.getID(), entityIdx);
                 entityIdx++;
             }
@@ -246,25 +257,26 @@ public class ShadowRender {
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
             int numEntities = entities.size();
-            for (RenderBuffers.MeshDrawData meshDrawData : model.getMeshDrawDataList()) {
-                // count
-                commandBuffer.putInt(meshDrawData.vertices());
-                // instanceCount
-                commandBuffer.putInt(numEntities);
-                commandBuffer.putInt(firstIndex);
-                // baseVertex
-                commandBuffer.putInt(meshDrawData.offset());
-                commandBuffer.putInt(baseInstance);
+            for(Entity ent : model.getEntityList())
+                for (RenderBuffers.MeshDrawData meshDrawData : ent.getMeshDrawDataList()) {
+                    // count
+                    commandBuffer.putInt(meshDrawData.vertices());
+                    // instanceCount
+                    commandBuffer.putInt(numEntities);
+                    commandBuffer.putInt(firstIndex);
+                    // baseVertex
+                    commandBuffer.putInt(meshDrawData.offset());
+                    commandBuffer.putInt(baseInstance);
 
-                firstIndex += meshDrawData.vertices();
-                baseInstance += entities.size();
+                    firstIndex += meshDrawData.vertices();
+                    baseInstance += entities.size();
 
-                for (Entity entity : entities) {
-                    String name = "drawElements[" + drawElement + "]";
-                    uniformMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
-                    drawElement++;
+                    for (Entity entity : entities) {
+                        String name = "drawElements[" + drawElement + "]";
+                        uniformMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
+                        drawElement++;
+                    }
                 }
-            }
         }
 
         commandBuffer.flip();
@@ -272,11 +284,71 @@ public class ShadowRender {
 
         staticDrawCount = commandBuffer.remaining() / COMMAND_SIZE;
 
+        glDeleteBuffers(staticRenderBufferHandle);
+
         staticRenderBufferHandle = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, staticRenderBufferHandle);
         glBufferData(GL_DRAW_INDIRECT_BUFFER, commandBuffer, GL_DYNAMIC_DRAW);
 
         MemoryUtil.memFree(commandBuffer);
     }
+
+    // private void updateStaticCommandBuffer(Scene scene) {
+    //     List<Model> modelList = scene.getStaticModelList();
+    //     Map<String, Integer> entitiesIdxMap = new HashMap<>();
+    //     int entityIdx = 0;
+    //     int numMeshes = 0;
+    //     for (Model model : scene.getModelMap().values()) {
+    //         List<Entity> entities = model.getEntityList();
+    //         for (Entity entity : entities) {
+    //             numMeshes += entity.getMeshDrawDataList().size();
+    //             entitiesIdxMap.put(entity.getID(), entityIdx);
+    //             entityIdx++;
+    //         }
+    //     }
+
+    //     int firstIndex = 0;
+    //     int baseInstance = 0;
+    //     int drawElement = 0;
+    //     shader.bind();
+    //     ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
+    //     for (Model model : modelList) {
+    //         List<Entity> entities = model.getEntityList();
+    //         int numEntities = entities.size();
+    //         for(Entity ent : model.getEntityList())
+    //             for (RenderBuffers.MeshDrawData meshDrawData : ent.getMeshDrawDataList()) {
+    //                 // count
+    //                 commandBuffer.putInt(meshDrawData.vertices());
+    //                 // instanceCount
+    //                 commandBuffer.putInt(numEntities);
+    //                 commandBuffer.putInt(firstIndex);
+    //                 // baseVertex
+    //                 commandBuffer.putInt(meshDrawData.offset());
+    //                 commandBuffer.putInt(baseInstance);
+
+    //                 firstIndex += meshDrawData.vertices();
+    //                 baseInstance += entities.size();
+
+    //                 for (Entity entity : entities) {
+    //                     String name = "drawElements[" + drawElement + "]";
+    //                     uniformMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
+    //                     drawElement++;
+    //                 }
+    //             }
+    //     }
+
+    //     commandBuffer.flip();
+    //     shader.unbind();
+
+    //     staticDrawCount = commandBuffer.remaining() / COMMAND_SIZE;
+
+    //     glDeleteBuffers(staticRenderBufferHandle);
+
+    //     staticRenderBufferHandle = glGenBuffers();
+    //     glBindBuffer(GL_DRAW_INDIRECT_BUFFER, staticRenderBufferHandle);
+    //     glBufferData(GL_DRAW_INDIRECT_BUFFER, commandBuffer, GL_DYNAMIC_DRAW);
+
+    //     MemoryUtil.memFree(commandBuffer);
+    // }
 
 }

@@ -26,6 +26,8 @@ public class Scene {
     private Entity selectedEntity;
     private MaterialCache materialCache;
 
+    private List<Model> staticModels, animModels;
+
     public Scene(int width, int height) {
 
         modelMap = new HashMap<>();
@@ -35,6 +37,8 @@ public class Scene {
         camera = new Camera();
         fog = new Fog();
 
+        staticModels = new ArrayList<>();
+        animModels = new ArrayList<>();
     }
 
     public void addEntity(Entity entity){
@@ -48,6 +52,8 @@ public class Scene {
 
         if(model.getEntityList().size() == 0){
             model.getEntityList().add(entity);
+            if(!model.isAnimated()) staticModels.add(model);
+            else animModels.add(model);
         }else{
 
             int i = 1;
@@ -93,6 +99,10 @@ public class Scene {
                     entity.changeModel(modelTemp);
                     modelTemp.getEntityList().add(entity);
                     addModel(modelTemp);
+
+                    if(!model.isAnimated()) staticModels.add(modelTemp);
+                    else animModels.add(modelTemp);
+                    
                     added = true;
 
                 }else{
@@ -185,6 +195,22 @@ public class Scene {
 
     public MaterialCache getMaterialCache(){
         return materialCache;
+    }
+
+    public List<Model> getStaticModelList(){
+        return staticModels;
+    }
+    
+    public List<Model> getAnimModelList(){
+        return animModels;
+    }
+    
+    public void setStaticModelList(List<Model> sM){
+        staticModels = sM;
+    }
+    
+    public void setAnimModelList(List<Model> aM){
+        animModels = aM;
     }
     
 }

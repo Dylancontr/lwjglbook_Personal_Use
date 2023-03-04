@@ -129,6 +129,57 @@ public class Scene {
         modelMap.put(model.getID(), model);
     }
 
+    public Model loadStaticModel(String id, String path){
+
+        if(modelMap.containsKey(id)){
+            int i = 0;
+            do{
+                i++;
+            }while(modelMap.containsKey(id + "(" + i + ")"));
+            id += "(" + i + ")";
+        }
+        Model m = ModelLoader.loadModel(id, path, textureCache, materialCache, false);
+
+        addModel(m);
+
+        Entity e = new Entity(id, m);
+
+        e.updateModelMatrix();
+        addEntity(e);
+
+        selectedEntity = e;
+
+        return m;
+
+    }
+
+    public Model loadAnimModel(String id, String path){
+
+        if(modelMap.containsKey(id)){
+            int i = 0;
+            do{
+                i++;
+            }while(modelMap.containsKey(id + "(" + i + ")"));
+            id += "(" + i + ")";
+        }
+
+        Model m = ModelLoader.loadModel(id, path, textureCache, materialCache, true);
+
+        addModel(m);
+
+        Entity e = new Entity(id, m);
+
+        addEntity(e);
+
+        m = modelMap.get(e.getModelID());
+        AnimationData animationData = new AnimationData(m.getAnimationList().get(0));
+        e.setAnimationData(animationData);
+        e.updateModelMatrix();
+
+        selectedEntity = e;
+        return m;
+    }
+
     public void cleanup() {
         modelMap.values().stream().forEach(Model::cleanup);
     }

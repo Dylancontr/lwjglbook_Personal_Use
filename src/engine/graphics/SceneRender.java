@@ -33,10 +33,10 @@ public class SceneRender {
     private int currMatSize;
     private int currEntityMapSize;
 
-    private int staticfirstIndex;
+    // private int staticfirstIndex;
     private int staticbaseInstance;
     
-    private int animfirstIndex;
+    // private int animfirstIndex;
     private int animbaseInstance;
 
     public SceneRender(){
@@ -51,7 +51,7 @@ public class SceneRender {
 
         currMatSize = 0;
         currEntityMapSize = 0;
-        staticfirstIndex = 0;
+        // staticfirstIndex = 0;
         staticbaseInstance = 0;
 
         createUniforms();
@@ -194,7 +194,7 @@ public class SceneRender {
                 numMeshes += entity.getMeshDrawDataList().size();
         }
 
-        animfirstIndex = 0;
+        // animfirstIndex = 0;
         animbaseInstance = 0;
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
@@ -204,12 +204,12 @@ public class SceneRender {
                     commandBuffer.putInt(meshDrawData.vertices());
                     // instanceCount
                     commandBuffer.putInt(1);
-                    commandBuffer.putInt(animfirstIndex);
+                    commandBuffer.putInt(meshDrawData.vertexOffset());
                     // baseVertex
                     commandBuffer.putInt(meshDrawData.offset());
                     commandBuffer.putInt(animbaseInstance);
 
-                    animfirstIndex += meshDrawData.vertices();
+                    // animfirstIndex += meshDrawData.vertices();
                     animbaseInstance++;
                 }
         }
@@ -236,9 +236,9 @@ public class SceneRender {
         }
 
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
-        
+
         numMeshes+=entity.getMeshDrawDataList().size();
-        
+
         ByteBuffer newcommandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, animRenderBufferHandle);
@@ -255,17 +255,17 @@ public class SceneRender {
             newcommandBuffer.putInt(meshDrawData.vertices());
             // instanceCount
             newcommandBuffer.putInt(1);
-            newcommandBuffer.putInt(animfirstIndex);
+            newcommandBuffer.putInt(meshDrawData.vertexOffset());
             // baseVertex
             newcommandBuffer.putInt(meshDrawData.offset());
             newcommandBuffer.putInt(animbaseInstance);
 
-            animfirstIndex += meshDrawData.vertices();
+            // animfirstIndex += meshDrawData.vertices();
             animbaseInstance += 1;
 
         }
 
-        newcommandBuffer.position(0);
+        newcommandBuffer.flip();
 
         animDrawCount = newcommandBuffer.remaining() / COMMAND_SIZE;
 
@@ -288,7 +288,7 @@ public class SceneRender {
                 numMeshes += entity.getMeshDrawDataList().size();
         }
 
-        staticfirstIndex = 0;
+        // staticfirstIndex = 0;
         staticbaseInstance = 0;
 
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
@@ -301,12 +301,12 @@ public class SceneRender {
                     commandBuffer.putInt(meshDrawData.vertices());
                     // instanceCount
                     commandBuffer.putInt(numEntities);
-                    commandBuffer.putInt(staticfirstIndex);
+                    commandBuffer.putInt(meshDrawData.vertexOffset());
                     // baseVertex
                     commandBuffer.putInt(meshDrawData.offset());
                     commandBuffer.putInt(staticbaseInstance);
 
-                    staticfirstIndex += meshDrawData.vertices();
+                    // staticfirstIndex += meshDrawData.vertices();
                     staticbaseInstance += numEntities;
                 }
         }
@@ -358,17 +358,17 @@ public class SceneRender {
             newcommandBuffer.putInt(meshDrawData.vertices());
             // instanceCount
             newcommandBuffer.putInt(1);
-            newcommandBuffer.putInt(staticfirstIndex);
+            newcommandBuffer.putInt(meshDrawData.vertexOffset());
             // baseVertex
             newcommandBuffer.putInt(meshDrawData.offset());
             newcommandBuffer.putInt(staticbaseInstance);
 
-            staticfirstIndex += meshDrawData.vertices();
+            // staticfirstIndex += meshDrawData.vertices();
             staticbaseInstance += 1;
 
         }
 
-        newcommandBuffer.position(0);
+        newcommandBuffer.flip();
 
         staticDrawCount = newcommandBuffer.remaining() / COMMAND_SIZE;
 
@@ -443,7 +443,7 @@ public class SceneRender {
 
     public void updateData(Scene scene, Entity entity, boolean animated) {
         setupEntitiesData(scene);
-        
+
         if(!animated){
             updateStaticCommandBuffer(scene, entity);
             setupAnimCommandBuffer(scene);

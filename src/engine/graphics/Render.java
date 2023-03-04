@@ -91,7 +91,7 @@ public class Render{
         lightsRender.render(scene, shadowRender, gBuffer);
         skyBoxRender.render(scene);
         lightRenderFinish();
-        guiRender.render(scene);
+        guiRender.render(scene, this);
 
     }
 
@@ -107,6 +107,15 @@ public class Render{
     public void dupAnimated(Entity entity, Scene scene){
         renderBuffers.dupAnimated(entity, scene);
         sceneRender.updateData(scene, entity, true);
+    }
+
+    public void addObject(Scene scene, Model model){
+        if(!model.isAnimated())
+            renderBuffers.addStaticModel(model);
+        else
+            renderBuffers.addAnimModel(model);
+        for(Entity entity : model.getEntityList())
+            sceneRender.updateData(scene, entity, model.isAnimated());
     }
 
     public void setupData(Scene scene) {

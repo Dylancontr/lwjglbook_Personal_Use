@@ -61,7 +61,7 @@ public class GuiRender {
 
     }
 
-    public void render(Scene scene){
+    public void render(Scene scene, Render render){
 
         IGuiInstance guiInstance = scene.getGuiInstance();
 
@@ -69,7 +69,7 @@ public class GuiRender {
             return;
         }
 
-        guiInstance.drawGui(scene);
+        guiInstance.drawGui(scene, render);
 
         shader.bind();
 

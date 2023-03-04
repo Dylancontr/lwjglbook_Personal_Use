@@ -2,6 +2,8 @@ package src.game;
 
 import src.engine.IGuiInstance;
 import src.engine.Window;
+import src.engine.graphics.Model;
+import src.engine.graphics.Render;
 import src.engine.scene.Scene;
 
 import imgui.*;
@@ -20,11 +22,11 @@ public class TextCheck implements IGuiInstance{
     ImString input;
 
     public TextCheck(){
-        input = new ImString(100);
+        input = new ImString(256);
     }
 
     @Override
-    public void drawGui(Scene scene) {
+    public void drawGui(Scene scene, Render render) {
 
         ImGui.newFrame();
         ImGui.setNextWindowPos(0, 0, ImGuiCond.Always);
@@ -32,22 +34,21 @@ public class TextCheck implements IGuiInstance{
 
         ImGui.begin("Text Check");
 
-        drawGuiComponent(scene);
+        drawGuiComponent(scene, render);
 
         ImGui.end();
         ImGui.endFrame();
         ImGui.render();
     }
 
-    public void drawGuiComponent(Scene scene){
+    public void drawGuiComponent(Scene scene, Render render){
 
         
         if(ImGui.collapsingHeader("TextCheck")){
 
             ImGui.inputText("Input", input);
 
-            if(ImGui.button("Get File")){
-
+            if(ImGui.button("Get Texture")){
 
                 File test = new File(input.get());
 
@@ -58,16 +59,38 @@ public class TextCheck implements IGuiInstance{
                 ImGui.setKeyboardFocusHere(0);
             }
 
+            if(ImGui.button("Load Static Model")){
+
+                File test = new File(input.get());
+
+                if(test.exists()){
+                    Model m = scene.loadStaticModel(test.getName().substring(0, test.getName().indexOf('.')), input.get());
+                    render.addObject(scene, m);
+                }else{
+                    System.out.println("Model not found");
+                }
+
+            }
+
+            if(ImGui.button("Load Animated Model")){
+
+                File test = new File(input.get());
+
+                if(test.exists()){
+                    Model m = scene.loadAnimModel(test.getName().substring(0, test.getName().indexOf('.')), input.get());
+                    render.addObject(scene, m);
+                }else{
+                    System.out.println("Model not found");
+                }
+            }
+
             
             if(scene.getSelectedEntity() == null)
                 ImGui.inputText("selected",new ImString(""));
             else{
 
-                ImGui.inputText("selected",new ImString(scene.getSelectedEntity().getID()));
-                ImGui.inputText("selected",new ImString(scene.getSelectedEntity().getModelID()));
-                ImGui.inputText("selected",new ImString(scene.getSelectedEntity() + ""));
-                ImGui.inputText("selected",new ImString(scene.getSelectedEntity().getMeshDrawDataList().get(0).animMeshDrawData().entity() + ""));
-
+                ImGui.inputText("selected##EntID",new ImString(scene.getSelectedEntity().getID()));
+                ImGui.inputText("selected##ModelID",new ImString(scene.getSelectedEntity().getModelID()));
 
             }
 
@@ -79,6 +102,7 @@ public class TextCheck implements IGuiInstance{
         imGuiIO.setKeyMap(ImGuiKey.Backspace, GLFW_KEY_BACKSPACE);
         imGuiIO.setKeyMap(ImGuiKey.LeftArrow, GLFW_KEY_LEFT);
         imGuiIO.setKeyMap(ImGuiKey.RightArrow, GLFW_KEY_RIGHT);
+
 
     }
 
@@ -121,6 +145,10 @@ public class TextCheck implements IGuiInstance{
                         glfwGetClipboardString(window.getWindowHandle())
                     );
                 }
+
+                // if(key == GLFW_KEY_C && mods == GLFW_MOD_CONTROL && act){
+                //     ImGui.setClipboardText(input.get());
+                // }
                 
             });
 

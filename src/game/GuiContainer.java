@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import src.engine.IGuiInstance;
 import src.engine.Window;
+import src.engine.graphics.Render;
 import src.engine.scene.Scene;
 
 public class GuiContainer implements IGuiInstance{
@@ -32,7 +33,7 @@ public class GuiContainer implements IGuiInstance{
     }
 
     @Override
-    public void drawGui(Scene scene) {
+    public void drawGui(Scene scene, Render render) {
 
         ImGui.newFrame();
         ImGui.setNextWindowPos(0, 0, ImGuiCond.Always);
@@ -45,7 +46,7 @@ public class GuiContainer implements IGuiInstance{
         }
 
         if(textCheck != null){
-            textCheck.drawGuiComponent(scene);
+            textCheck.drawGuiComponent(scene, render);
         }
 
         ImGui.end();

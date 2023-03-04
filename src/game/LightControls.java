@@ -8,6 +8,7 @@ import java.util.List;
 import org.joml.*;
 import src.engine.*;
 import src.engine.graphics.LightsRender;
+import src.engine.graphics.Render;
 import src.engine.scene.Scene;
 import src.engine.scene.lights.*;
 
@@ -62,7 +63,7 @@ public class LightControls implements IGuiInstance{
     }
 
     @Override
-    public void drawGui(Scene scene) {
+    public void drawGui(Scene scene, Render render) {
         ImGui.newFrame();
         ImGui.setNextWindowPos(0, 0, ImGuiCond.Always);
         ImGui.setNextWindowSize(450, 400);

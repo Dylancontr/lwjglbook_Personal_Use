@@ -277,6 +277,11 @@ public class Game implements IAppLogic{
                 if(scene.getSelectedEntity() != null){
                     scene.getSelectedEntity().changeTex("resources/models/DoomGuy/DoomGuyToyFigure.obj", scene.getTextureCache(), scene.getMaterialCache());
                 }
+            }else if(window.isKeyPressed(GLFW_KEY_DOWN)){
+                if(scene.getSelectedEntity()!= null){
+                    scene.getSelectedEntity().setScale(scene.getSelectedEntity().getScale() - 0.005f);
+                    scene.getSelectedEntity().updateModelMatrix();
+                }
             }
 
             glfwSetKeyCallback(window.getWindowHandle(), (w, key, scanode, action, mods) ->{
@@ -297,10 +302,14 @@ public class Game implements IAppLogic{
                         render.dupStatic(newEnt, scene);
                     else
                         render.dupAnimated(newEnt, scene);
-                        
+
                     scene.setSelectedEntity(newEnt);
                     moveMode = true;
                 }
+
+                // if(mods == GLFW_MOD_CONTROL && key == GLFW_KEY_C && act){
+                    
+                // }
 
             });
 
@@ -350,9 +359,14 @@ public class Game implements IAppLogic{
 
     @Override
     public void update(Window window, Scene scene, long diffTimeMillis) {
-        animationData.nextFrame();
-        if (diffTimeMillis % 2 == 0) {
-            animationData2.nextFrame();
+        // animationData.nextFrame();
+        // if (diffTimeMillis % 2 == 0) {
+        //     animationData2.nextFrame();
+        // }
+
+        for(Model m : scene.getAnimModelList())
+        for(Entity e : m.getEntityList()){
+            e.getAnimationData().nextFrame();
         }
 
         rotation += 1.5;

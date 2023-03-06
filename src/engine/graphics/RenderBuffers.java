@@ -34,6 +34,9 @@ public class RenderBuffers {
     private int weightsOffset;
     private int poseMeshSize;
 
+    private int chunkBindingPoseOffset = 0;
+    private int chunkWeightsOffset = 0;
+
     
     public RenderBuffers(){
         vboIDList = new ArrayList<>();
@@ -86,12 +89,18 @@ public class RenderBuffers {
         int offset = 0;
         bindingPoseOffset = 0;
         weightsOffset = 0;
+        chunkBindingPoseOffset = 0;
+        chunkWeightsOffset = 0;
 
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
+            for(Entity entity : entities){
+                entity.setupDone();
+            }
             for (Entity entity : entities) {
                 List<RenderBuffers.MeshDrawData> meshDrawDataList = model.getMeshDrawDataList();
-
+                bindingPoseOffset = chunkBindingPoseOffset;
+                weightsOffset = chunkWeightsOffset;
                 for (MeshData meshData : model.getMeshDataList()) {
                     positionsSize += meshData.getPositions().length;
                     normalsSize += meshData.getNormals().length;
@@ -104,6 +113,7 @@ public class RenderBuffers {
                             meshData.getAabbMin(), meshData.getAabbMax(),
                             new AnimMeshDrawData(entity, bindingPoseOffset, weightsOffset)
                     ));
+                    entity.getMeshDrawDataList().add(meshDrawDataList.get(meshDrawDataList.size()-1));
                     indicesSize += meshData.getIndices().length;
                     bindingPoseOffset += meshSizeInBytes / 4;
                     int groupSize = (int) Math.ceil((float) meshSizeInBytes / (14 * 4));
@@ -111,13 +121,10 @@ public class RenderBuffers {
                     offset = positionsSize / 3;
                 }
             }
+            chunkBindingPoseOffset += bindingPoseOffset;
+            chunkWeightsOffset += weightsOffset;
 
         }
-
-        for(Model model : modelList)
-            for(Entity entity : model.getEntityList()){
-                entity.setupDone();
-            }
 
         destAnimationBuffer = glGenBuffers();
         vboIDList.add(destAnimationBuffer);
@@ -188,7 +195,13 @@ public class RenderBuffers {
         int meshesSize = 0;
         int verticesSize = 0;
 
+        for(Entity entity : model.getEntityList()){
+            entity.setupDone();
+        }
+
         for (Entity entity : entities) {
+            bindingPoseOffset = chunkBindingPoseOffset;
+            weightsOffset = chunkWeightsOffset;
             List<RenderBuffers.MeshDrawData> meshDrawDataList = model.getMeshDrawDataList();
 
             for (MeshData meshData : model.getMeshDataList()) {
@@ -203,6 +216,8 @@ public class RenderBuffers {
                     new AnimMeshDrawData(entity, bindingPoseOffset, weightsOffset)
                 ));
 
+                entity.getMeshDrawDataList().add(meshDrawDataList.get(meshDrawDataList.size()-1));
+
                 bindingPoseOffset += meshSizeInBytes / 4;
                 int groupSize = (int) Math.ceil((float) meshSizeInBytes / (14 * 4));
                 weightsOffset += groupSize * 2 * 4;
@@ -211,10 +226,9 @@ public class RenderBuffers {
             }
 
         }
+        chunkBindingPoseOffset += bindingPoseOffset;
+        chunkWeightsOffset += weightsOffset;
 
-        for(Entity entity : model.getEntityList()){
-            entity.setupDone();
-        }
         FloatBuffer meshesBuffer = MemoryUtil.memAllocFloat(animArrOffset);
         animArrOffset += meshesSize/(Float.SIZE/Byte.SIZE);
         FloatBuffer newMeshesBuffer = MemoryUtil.memAllocFloat(animArrOffset);

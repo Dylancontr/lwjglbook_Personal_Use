@@ -210,7 +210,7 @@ public class SceneRender {
                     commandBuffer.putInt(animbaseInstance);
 
                     // animfirstIndex += meshDrawData.vertices();
-                    animbaseInstance++;
+                    animbaseInstance += 1;
                 }
         }
         commandBuffer.flip();
@@ -294,20 +294,19 @@ public class SceneRender {
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
-            int numEntities = entities.size();
             for(Entity entity : entities)
                 for (RenderBuffers.MeshDrawData meshDrawData : entity.getMeshDrawDataList()) {
                     // count
                     commandBuffer.putInt(meshDrawData.vertices());
                     // instanceCount
-                    commandBuffer.putInt(numEntities);
+                    commandBuffer.putInt(1);
                     commandBuffer.putInt(meshDrawData.vertexOffset());
                     // baseVertex
                     commandBuffer.putInt(meshDrawData.offset());
                     commandBuffer.putInt(staticbaseInstance);
 
                     // staticfirstIndex += meshDrawData.vertices();
-                    staticbaseInstance += numEntities;
+                    staticbaseInstance += 1;
                 }
         }
         

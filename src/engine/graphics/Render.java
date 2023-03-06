@@ -102,11 +102,13 @@ public class Render{
     public void dupStatic(Entity entity, Scene scene){
         renderBuffers.dupStaticModel(entity, scene);
         sceneRender.updateData(scene, entity, false);
+        shadowRender.updateData(scene, entity);
     }
 
     public void dupAnimated(Entity entity, Scene scene){
         renderBuffers.dupAnimated(entity, scene);
         sceneRender.updateData(scene, entity, true);
+        shadowRender.updateData(scene, entity);
     }
 
     public void addObject(Scene scene, Model model){

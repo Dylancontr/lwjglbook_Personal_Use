@@ -9,8 +9,6 @@ import src.engine.IGuiInstance;
 import src.engine.graphics.MaterialCache;
 import src.engine.graphics.Model;
 import src.engine.graphics.TextureCache;
-import src.engine.graphics.Model.AnimatedFrame;
-import src.engine.graphics.Model.Animation;
 import src.engine.scene.lights.SceneLights;
 
 public class Scene {
@@ -50,83 +48,107 @@ public class Scene {
             throw new RuntimeException("Could not find model [" + modelID + "]");
         }
 
-        if(model.getEntityList().size() == 0){
+        if(model.getEntityList().size() == 0)
             model.getEntityList().add(entity);
-            if(!model.isAnimated()) staticModels.add(model);
-            else animModels.add(model);
-        }else{
-
-            int i = 1;
-            boolean added = false;
-
+        else{
             int j = 0;
-
-            for(Entity e :model.getEntityList()){
-                while(e.getID().equals(entity.getID())){
+            List<Entity> entList = model.getEntityList();
+            boolean found;
+            do{
+                String id = entity.getID();
+                found = false;
+                for(int i = 0; i < entList.size() && !found; i++){
+                    found  = entList.get(i).getID().equals(entity.getID());
+                }
+                if(found){
                     j++;
-                    entity.setID(entity.getID() + "(" + j + ")");
+                    entity.setID(id + "(" + j + ")");
                 }
-            }
-
-            while(!added){
-                
-                String modelIDTemp = modelID + "(" + i + ")";
-                
-                if(!modelMap.containsKey(modelIDTemp)){
-                    
-                    List<Animation> animCopy = new ArrayList<Animation>();
-                    if(model.isAnimated()){
-                        for(List<Animation> animList:  model.getAnimationsList())
-                            for(final Animation anim: animList){
-
-                                List<AnimatedFrame> framesTemp = new ArrayList<AnimatedFrame>();
-                                
-                                for(int k = 0; k < anim.frames().size(); k++){
-                                    if(anim.frames().get(k).getBonesMatrices() != null)
-                                    {
-                                        AnimatedFrame frameTemp = new AnimatedFrame(anim.frames().get(k).getBonesMatrices().clone());
-                                        framesTemp.add(frameTemp);
-                                    }
-                                }
-
-                                Animation animationTemp = new Animation(anim.name(), anim.duration(), framesTemp);
-                                animCopy.add(animationTemp);
-                            }
-                    }
-                    
-                    Model modelTemp = new Model(modelIDTemp, model.getMeshDataList(), model.getBoneList(), animCopy);
-
-                    entity.changeModel(modelTemp);
-                    modelTemp.getEntityList().add(entity);
-                    addModel(modelTemp);
-
-                    if(!model.isAnimated()) staticModels.add(modelTemp);
-                    else animModels.add(modelTemp);
-                    
-                    added = true;
-
-                }else{
-                    
-                    for(Entity ent : modelMap.get(modelIDTemp).getEntityList()){
-
-                        while(ent.getID().equals(entity.getID())){
-                            j++;
-                            entity.setID(entity.getID() + "(" + j + ")");
-                        }
-
-                    }
-                }
-
-                i++;
-                
-            }
-        
+            }while(found);
+            model.getEntityList().add(entity);
         }
+
+        // if(model.getEntityList().size() == 0){
+        //     model.getEntityList().add(entity);
+        //     if(!model.isAnimated()) staticModels.add(model);
+        //     else animModels.add(model);
+        // }else{
+
+        //     int i = 1;
+        //     boolean added = false;
+
+        //     int j = 0;
+
+        //     for(Entity e :model.getEntityList()){
+        //         while(e.getID().equals(entity.getID())){
+        //             j++;
+        //             entity.setID(entity.getID() + "(" + j + ")");
+        //         }
+        //     }
+
+        //     while(!added){
+                
+        //         String modelIDTemp = modelID + "(" + i + ")";
+                
+        //         if(!modelMap.containsKey(modelIDTemp)){
+                    
+        //             List<Animation> animCopy = new ArrayList<Animation>();
+        //             if(model.isAnimated()){
+        //                 for(List<Animation> animList:  model.getAnimationsList())
+        //                     for(final Animation anim: animList){
+
+        //                         List<AnimatedFrame> framesTemp = new ArrayList<AnimatedFrame>();
+                                
+        //                         for(int k = 0; k < anim.frames().size(); k++){
+        //                             if(anim.frames().get(k).getBonesMatrices() != null)
+        //                             {
+        //                                 AnimatedFrame frameTemp = new AnimatedFrame(anim.frames().get(k).getBonesMatrices().clone());
+        //                                 framesTemp.add(frameTemp);
+        //                             }
+        //                         }
+
+        //                         Animation animationTemp = new Animation(anim.name(), anim.duration(), framesTemp);
+        //                         animCopy.add(animationTemp);
+        //                     }
+        //             }
+                    
+        //             Model modelTemp = new Model(modelIDTemp, model.getMeshDataList(), model.getBoneList(), animCopy);
+
+        //             entity.changeModel(modelTemp);
+        //             modelTemp.getEntityList().add(entity);
+        //             addModel(modelTemp);
+
+        //             if(!model.isAnimated()) staticModels.add(modelTemp);
+        //             else animModels.add(modelTemp);
+                    
+        //             added = true;
+
+        //         }else{
+                    
+        //             for(Entity ent : modelMap.get(modelIDTemp).getEntityList()){
+
+        //                 while(ent.getID().equals(entity.getID())){
+        //                     j++;
+        //                     entity.setID(entity.getID() + "(" + j + ")");
+        //                 }
+
+        //             }
+        //         }
+
+        //         i++;
+                
+        //     }
+        
+        // }
 
     }
 
     public void addModel(Model model) {
-        modelMap.put(model.getID(), model);
+        if(!modelMap.containsKey(model.getID())){
+            modelMap.put(model.getID(), model);        
+            if(!model.isAnimated()) staticModels.add(model);
+            else animModels.add(model);
+        }
     }
 
     public Model loadStaticModel(String id, String path){

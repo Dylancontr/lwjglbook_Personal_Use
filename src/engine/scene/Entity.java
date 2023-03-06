@@ -52,6 +52,19 @@ public class Entity {
 
     public void setupDone(){
         drawData = new ArrayList<MeshDrawData>(drawData);
+        // if(animationData == null)
+        //     drawData = new ArrayList<MeshDrawData>(drawData);
+        // else{
+        //     ArrayList<MeshDrawData> tempData = new ArrayList<MeshDrawData>();
+        //     for(MeshDrawData dd : drawData){
+        //         tempData.add(new MeshDrawData(dd.sizeInBytes(), dd.materialIdx(), 
+        //         dd.offset(), dd.vertices(), dd.vertexOffset(), 
+        //         dd.aabbMin(), dd.aabbMax(), 
+        //         new AnimMeshDrawData(this, dd.animMeshDrawData().bindingPoseOffset(), dd.animMeshDrawData().weightsOffset()))
+        //         );
+        //     }
+            
+        // }
     }
 
     public void changeTex(int idx){

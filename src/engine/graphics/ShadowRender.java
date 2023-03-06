@@ -201,7 +201,6 @@ public class ShadowRender {
             numMeshes += ent.getMeshDrawDataList().size();
         }
 
-        int firstIndex = 0;
         int baseInstance = 0;
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
@@ -213,12 +212,11 @@ public class ShadowRender {
                 commandBuffer.putInt(meshDrawData.vertices());
                 // instanceCount
                 commandBuffer.putInt(1);
-                commandBuffer.putInt(firstIndex);
+                commandBuffer.putInt(meshDrawData.vertexOffset());
                 // baseVertex
                 commandBuffer.putInt(meshDrawData.offset());
                 commandBuffer.putInt(baseInstance);
 
-                firstIndex += meshDrawData.vertices();
                 baseInstance++;
             }
         }
@@ -237,50 +235,34 @@ public class ShadowRender {
 
     private void setupStaticCommandBuffer(Scene scene) {
         List<Model> modelList = scene.getStaticModelList();
-        Map<String, Integer> entitiesIdxMap = new HashMap<>();
-        int entityIdx = 0;
         int numMeshes = 0;
-        for (Model model : scene.getModelMap().values()) {
+        for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
             for (Entity entity : entities) {
                 numMeshes += entity.getMeshDrawDataList().size();
-                entitiesIdxMap.put(entity.getID(), entityIdx);
-                entityIdx++;
             }
         }
 
-        int firstIndex = 0;
         int baseInstance = 0;
-        int drawElement = 0;
-        shader.bind();
         ByteBuffer commandBuffer = MemoryUtil.memAlloc(numMeshes * COMMAND_SIZE);
         for (Model model : modelList) {
             List<Entity> entities = model.getEntityList();
-            int numEntities = entities.size();
-            for(Entity ent : model.getEntityList())
+            for(Entity ent : entities)
                 for (RenderBuffers.MeshDrawData meshDrawData : ent.getMeshDrawDataList()) {
                     // count
                     commandBuffer.putInt(meshDrawData.vertices());
                     // instanceCount
-                    commandBuffer.putInt(numEntities);
-                    commandBuffer.putInt(firstIndex);
+                    commandBuffer.putInt(1);
+                    commandBuffer.putInt(meshDrawData.vertexOffset());
                     // baseVertex
                     commandBuffer.putInt(meshDrawData.offset());
                     commandBuffer.putInt(baseInstance);
 
-                    firstIndex += meshDrawData.vertices();
-                    baseInstance += entities.size();
-
-                    for (Entity entity : entities) {
-                        String name = "drawElements[" + drawElement + "]";
-                        uniformMap.setUniform(name + ".modelMatrixIdx", entitiesIdxMap.get(entity.getID()));
-                        drawElement++;
-                    }
+                    baseInstance += 1;
                 }
         }
 
         commandBuffer.flip();
-        shader.unbind();
 
         staticDrawCount = commandBuffer.remaining() / COMMAND_SIZE;
 

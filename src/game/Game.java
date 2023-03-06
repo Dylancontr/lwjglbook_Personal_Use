@@ -115,7 +115,7 @@ public class Game implements IAppLogic{
 
         scene.addEntity(bobEntity);
 
-        bobEntity2 = new Entity("bobEntity-2", scene.getModelMap().get(bobModelId));
+        bobEntity2 = new Entity("bobEntity", scene.getModelMap().get(bobModelId));
         bobEntity2.setPosition(2, 0, 0);
         bobEntity2.setScale(0.025f);
         animationData2 = new AnimationData(bobModel.getAnimationList().get(0));

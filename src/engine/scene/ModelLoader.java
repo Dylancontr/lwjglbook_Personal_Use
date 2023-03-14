@@ -48,11 +48,17 @@ public class ModelLoader {
 
         int numMaterials = aiScene.mNumMaterials();
         List<Material> materialList = new ArrayList<>();
+        List<Material> cacheList = materialCache.getMaterialList();
         for (int i = 0; i < numMaterials; i++) {
             AIMaterial aiMaterial = AIMaterial.create(aiScene.mMaterials().get(i));
             Material material = processMaterial(aiMaterial, modelDir, textureCache);
+            if(cacheList.contains(material)){
+                materialList.add(cacheList.get(cacheList.indexOf(material)));
+            }
+            else{
                 materialCache.addMaterial(material);
                 materialList.add(material);
+            }
         }
 
         int numMeshes = aiScene.mNumMeshes();

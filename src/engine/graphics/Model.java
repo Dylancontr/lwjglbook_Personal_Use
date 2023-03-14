@@ -16,9 +16,9 @@ public class Model {
     private List<MeshData> meshDataList;
     private List<RenderBuffers.MeshDrawData> meshDrawDataList;
     private List<Animation> animationList;
+    private int currAnimation;
     
     private List<Bone> boneList;
-    private List<List<Animation>> animations;
 
     private Vector3f aabbMax, aabbMin;
 
@@ -29,8 +29,7 @@ public class Model {
         animationList = aL;
         boneList = bL;
         meshDrawDataList = new ArrayList<>();
-        animations = new ArrayList<>();
-        animations.add(animationList);
+        currAnimation = 0;
 
     }
 
@@ -43,7 +42,10 @@ public class Model {
     }
 
     public void setAnimation(int idx) throws IndexOutOfBoundsException{
-        animationList = animations.get(idx);
+        if(currAnimation < 0 || currAnimation >= animationList.size()){
+            throw new IndexOutOfBoundsException();
+        }
+        currAnimation = idx;
     }
 
     public List<Entity> getEntityList(){
@@ -66,10 +68,6 @@ public class Model {
         return animationList;
     }
 
-    public List<List<Animation>> getAnimationsList(){
-        return animations;
-    }
-
     public boolean isAnimated() {
         return animationList != null && !animationList.isEmpty();
     }
@@ -80,7 +78,14 @@ public class Model {
             throw new Exception("Model has no bones");
         }
 
+        List<List<Animation>> animations = new ArrayList<List<Animation>>();
+
         animations.add(ModelLoader.processAnimations(animPath, boneList));
+
+        for(List<Animation> animsList : animations){
+            for(Animation anims : animsList)
+                animationList.add(anims);
+        }
     }
 
     public Vector3f getAabbMax() {
@@ -91,8 +96,7 @@ public class Model {
         return aabbMin;
     }
     
-    public record Animation(String name, double duration, List<AnimatedFrame> frames) {
-    }
+    public record Animation(String name, double duration, List<AnimatedFrame> frames) {}
     
     public static class AnimatedFrame {
         private Matrix4f[] bonesMatrices;

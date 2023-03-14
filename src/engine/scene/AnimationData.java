@@ -31,6 +31,10 @@ public class AnimationData {
         currentAnimation = new Model.Animation(cA.name(), cA.duration(), new ArrayList<Model.AnimatedFrame>(cA.frames()));
     }
 
+    public void setAnimation(Model.Animation animation){
+        currentAnimation = animation;
+    }
+
     public Model.Animation getCurrentAnimation() {
         return currentAnimation;
     }

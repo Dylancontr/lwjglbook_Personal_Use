@@ -90,6 +90,45 @@ public class Window {
 
     }
 
+    public Window(String title, WindowOptions opts, Callable<Void> resizeFunc, Window parent){
+
+        if (opts.width > 0 && opts.height > 0) {
+            this.width = opts.width;
+            this.height = opts.height;
+        } else {
+            glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+            GLFWVidMode vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+            width = vidMode.width();
+            height = vidMode.height();
+        }
+        windowHandle = glfwCreateWindow(width, height, title, NULL, parent.getWindowHandle());
+        if (windowHandle == NULL) {
+            throw new RuntimeException("Failed to create the GLFW window");
+        }
+
+        glfwMakeContextCurrent(windowHandle);
+
+        glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+        glfwWindowHint(GLFW_FOCUSED, GL_TRUE);
+
+        if (opts.fps > 0) {
+            glfwSwapInterval(0);
+        } else {
+            glfwSwapInterval(1);
+        }
+
+        glfwShowWindow(windowHandle);
+
+        int[] arrWidth = new int[1];
+        int[] arrHeight = new int[1];
+        glfwGetFramebufferSize(windowHandle, arrWidth, arrHeight);
+        width = arrWidth[0];
+        height = arrHeight[0];
+
+        mouseInput = new MouseInput(windowHandle);
+    }
+
     public void cleanup(){
         glfwFreeCallbacks(windowHandle);
         glfwDestroyWindow(windowHandle);

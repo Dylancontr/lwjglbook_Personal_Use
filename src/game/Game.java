@@ -2,8 +2,10 @@ package src.game;
 
 import static org.lwjgl.glfw.GLFW.*;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import org.joml.Matrix4f;
@@ -11,7 +13,9 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.joml.Intersectionf;
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.openal.AL11;
+import org.lwjgl.system.MemoryUtil;
 
 import src.engine.Engine;
 import src.engine.IAppLogic;
@@ -50,7 +54,6 @@ public class Game implements IAppLogic{
     private AnimationData animationData2;
     private Entity bobEntity;
     private Entity bobEntity2;
-    private List<AnimationData> animDataList;
 
 
     private SoundSource playerSoundSource;
@@ -84,8 +87,6 @@ public class Game implements IAppLogic{
     @Override
     public void init(Window window, Scene scene, Render render) {
 
-        animDataList = new ArrayList<>();
-
         String terrainModelId = "terrain";
         Model terrainModel = ModelLoader.loadModel(terrainModelId, "resources/models/terrain/terrain.obj",
                 scene.getTextureCache(), scene.getMaterialCache(), false);
@@ -99,8 +100,7 @@ public class Game implements IAppLogic{
         Model bobModel = ModelLoader.loadModel(bobModelId, "resources/models/human/human.md5mesh",
                 scene.getTextureCache(), scene.getMaterialCache(), true);
         scene.addModel(bobModel);
-        
-        addAnimation(bobModel, "resources/models/human/human.md5anim");
+
         addAnimation(bobModel, "resources/models/human/TwistingHandWave.md5anim");
         addAnimation(bobModel, "resources/models/human/JumpTest.md5anim");
         
@@ -109,7 +109,7 @@ public class Game implements IAppLogic{
         bobEntity.setScale(0.05f);
         bobEntity.setAnimationData(animationData);
     
-        setAnimation(bobEntity, 0);
+        setAnimation(scene, bobEntity, 0);
 
         bobEntity.updateModelMatrix();
 
@@ -257,19 +257,19 @@ public class Game implements IAppLogic{
                 animationData.nextFrame();
             }else if(window.isKeyPressed(GLFW_KEY_O)){
                 try{
-                    setAnimation(bobEntity, 0);
+                    setAnimation(scene, bobEntity, 0);
                 }catch(IndexOutOfBoundsException e){
                     e.printStackTrace();
                 }
             }else if(window.isKeyPressed(GLFW_KEY_P)){
                 try{
-                    setAnimation(bobEntity, 1);
+                    setAnimation(scene, bobEntity, 1);
                 }catch(IndexOutOfBoundsException e){
                     e.printStackTrace();
                 }
             }else if(window.isKeyPressed(GLFW_KEY_L)){
                 try{
-                    setAnimation(bobEntity, 2);
+                    setAnimation(scene, bobEntity, 2);
                 }catch(IndexOutOfBoundsException e){
                     e.printStackTrace();
                 }
@@ -311,6 +311,53 @@ public class Game implements IAppLogic{
                     
                 // }
 
+            });
+
+            glfwSetDropCallback(window.getWindowHandle(), (w, count,  paths)->{
+
+                PointerBuffer pointers = MemoryUtil.memPointerBuffer(paths, count);
+
+                for(int i = 0; i < pointers.capacity(); i++){
+
+                    ByteBuffer chars = MemoryUtil.memByteBufferNT1Safe(pointers.get(i));
+                    byte[] a = new byte[chars.capacity()];
+                    for(int j = 0; j < chars.capacity(); j++)
+                        a[j] = chars.get(j);
+                    
+                    String x = new String(a, StandardCharsets.UTF_8);
+
+                    File test = new File(x);
+                    if(test.exists()){
+                        Model m;
+                        DropFileLoadType poll = new DropFileLoadType(window, test.getName());
+
+                        while(!poll.getShouldClose()){
+                            poll.update();
+                            glfwPollEvents();
+                        }
+        
+                        glfwMakeContextCurrent(window.getWindowHandle());
+        
+                        poll.cleanup();
+        
+                        window.update();
+
+                        switch(poll.getOutput()){
+                            case 0: 
+                                m = scene.loadStaticModel(test.getName().substring(0, test.getName().indexOf('.')), x);
+                                break;
+                                case 1:
+                                m = scene.loadAnimModel(test.getName().substring(0, test.getName().indexOf('.')), x);
+                                break;
+                            default:
+                                m = null;
+                        }
+                        
+                        if (m != null)
+                            render.addObject(scene, m);
+                    }
+                }
+                
             });
 
             MouseInput mouseInput = window.getMouseInput();
@@ -413,11 +460,9 @@ public class Game implements IAppLogic{
 
             animationData = new AnimationData(
 
-                m.getAnimationsList().
-                get(m.getAnimationsList().size() - 1).
-                get(0));
-            
-            animDataList.add(animationData);
+                m.getAnimationList().
+                get(m.getAnimationList().size() - 1)
+                );
             
         }catch (Exception ex) {
             ex.printStackTrace();
@@ -425,10 +470,11 @@ public class Game implements IAppLogic{
 
     }
 
-    public void setAnimation(Entity en, int numAnim) throws IndexOutOfBoundsException{
+    public void setAnimation(Scene scene, Entity en, int numAnim) throws IndexOutOfBoundsException{
 
         try{
-            animationData = animDataList.get(numAnim);
+            Model m = scene.getModelMap().get(en.getModelID());
+            animationData.setAnimation(m.getAnimationList().get(numAnim));
             animationData.resetAnimation();
             en.setAnimationData(animationData);
         }catch(IndexOutOfBoundsException ex){

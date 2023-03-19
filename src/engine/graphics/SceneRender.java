@@ -1,5 +1,6 @@
 package src.engine.graphics;
 
+import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryUtil;
 import src.engine.scene.*;
 import org.tinylog.Logger;
@@ -135,7 +136,13 @@ public class SceneRender {
         for (Model model : scene.getModelMap().values()) {
             List<Entity> entities = model.getEntityList();
             for (Entity entity : entities) {
-                uniformsMap.setUniform("modelMatrices[" + entityIdx + "]", entity.getModelMatrix());
+                if(entity.isVisible())
+                    uniformsMap.setUniform("modelMatrices[" + entityIdx + "]", entity.getModelMatrix());
+                else{
+                    Matrix4f temp = new Matrix4f();
+                    temp.scale(0f);
+                    uniformsMap.setUniform("modelMatrices[" + entityIdx + "]", temp);
+                }
                 entityIdx++;
             }
         }

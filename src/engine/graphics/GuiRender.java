@@ -44,6 +44,15 @@ public class GuiRender {
         imGuiIO.setDisplaySize(window.getWidth(), window.getHeight());
 
         ImFontAtlas fontAtlas = ImGui.getIO().getFonts();
+        ImFontConfig config = new ImFontConfig();
+        // fontAtlas.addFontDefault();
+        config.setMergeMode(true);
+        short [] ranges = {0x0100, 0x01ff, 0};
+        fontAtlas.addFontFromFileTTF("resources/font/Roboto-Black.ttf", 20f);
+        fontAtlas.addFontFromFileTTF("resources/font/eyes.ttf", 20f, config, ranges);
+
+        fontAtlas.build();
+
         ImInt width = new ImInt();
         ImInt height = new ImInt();
         ByteBuffer buf = fontAtlas.getTexDataAsRGBA32(width, height);

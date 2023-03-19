@@ -70,14 +70,15 @@ public class LightControls implements IGuiInstance{
 
         ImGui.begin("Light Controls");
 
-        drawGuiComponent(scene);
+        drawGuiComponent(scene, render);
 
         ImGui.end();
         ImGui.endFrame();
         ImGui.render();
     }
 
-    public void drawGuiComponent(Scene scene){
+    @Override
+    public void drawGuiComponent(Scene scene, Render render){
 
         if(ImGui.collapsingHeader("Light Controls")){
 
@@ -91,18 +92,6 @@ public class LightControls implements IGuiInstance{
             if (ImGui.collapsingHeader("Point Light")) {
 
                 List<PointLight> pLights = scene.getSceneLights().getPointLights();
-                if(ImGui.button("+")){
-                    if(pLights.size() < LightsRender.MAX_POINT_LIGHTS){
-                        
-                        pLights.add(new PointLight(new Vector3f(1f,1f,1f), 
-                        new Vector3f(0,0,0), 1));
-                        pointLightsArr[pLights.size() - 1] = new PointLightControls(pLights.get(pLights.size() - 1));
-
-                    }else{
-                        System.out.println("Max point lights reached");
-                    }
-                    
-                }
 
                 for(int i = 0; i < pLights.size(); i++){
 
@@ -127,28 +116,26 @@ public class LightControls implements IGuiInstance{
                             ImGui.separator();
                         }   
                     }
+                    
+                }
+
+                if(ImGui.button("+##PointLights")){
+                    if(pLights.size() < LightsRender.MAX_POINT_LIGHTS){
+                        
+                        pLights.add(new PointLight(new Vector3f(1f,1f,1f), 
+                        new Vector3f(0,0,0), 1));
+                        pointLightsArr[pLights.size() - 1] = new PointLightControls(pLights.get(pLights.size() - 1));
+
+                    }else{
+                        System.out.println("Max point lights reached");
+                    }
+                    
                 }
             }
                 
             if (ImGui.collapsingHeader("Spot Light")) {
                 
                 List<SpotLight> spLights = scene.getSceneLights().getSpotLights();
-
-                if(ImGui.button("+")){
-                    if(spLights.size() < LightsRender.MAX_POINT_LIGHTS){
-                        
-                        spLights.add(new SpotLight(new PointLight(new Vector3f(1f,1f,1f), 
-                        new Vector3f(0,1f, 1.4f), 1),
-                        new Vector3f(0, 0, -1),
-                        140f));
-
-                        spotLightsArr[spLights.size() - 1] = new SpotLightControls(spLights.get(spLights.size() - 1));
-
-                    }else{
-                        System.out.println("Max spot lights reached");
-                    }
-                    
-                }
 
                 for(int i = 0; i < spLights.size(); i++){
 
@@ -184,6 +171,22 @@ public class LightControls implements IGuiInstance{
                         }
                     
                     }
+                }
+
+                if(ImGui.button("+##SpotLights")){
+                    if(spLights.size() < LightsRender.MAX_POINT_LIGHTS){
+                        
+                        spLights.add(new SpotLight(new PointLight(new Vector3f(1f,1f,1f), 
+                        new Vector3f(0,1f, 1.4f), 1),
+                        new Vector3f(0, 0, -1),
+                        140f));
+
+                        spotLightsArr[spLights.size() - 1] = new SpotLightControls(spLights.get(spLights.size() - 1));
+
+                    }else{
+                        System.out.println("Max spot lights reached");
+                    }
+                    
                 }
 
             }

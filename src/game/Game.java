@@ -6,6 +6,8 @@ import java.util.List;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 import org.joml.Matrix4f;
@@ -19,6 +21,7 @@ import org.lwjgl.system.MemoryUtil;
 
 import src.engine.Engine;
 import src.engine.IAppLogic;
+import src.engine.IGuiInstance;
 import src.engine.MouseInput;
 import src.engine.Window;
 import src.engine.graphics.Model;
@@ -194,7 +197,10 @@ public class Game implements IAppLogic{
 
         textCheck = new TextCheck();
 
-        GuiContainer container = new GuiContainer(lightControls, textCheck);
+
+        GuiContainer container = new GuiContainer(new ArrayList<IGuiInstance>(
+            Arrays.asList(lightControls, textCheck, new EntityList(scene.getTextureCache()))
+        ));
         
         scene.setGuiInstance(container);
 
@@ -291,6 +297,11 @@ public class Game implements IAppLogic{
                 if(key == GLFW_KEY_G && act && scene.getSelectedEntity() != null){
                     moveMode = !moveMode;
                 }
+                
+                if(key == GLFW_KEY_V && act && scene.getSelectedEntity() != null){
+                    scene.getSelectedEntity().toggleVisibility();;
+                }
+
 
                 if(mods == GLFW_MOD_SHIFT && key == GLFW_KEY_D && act && scene.getSelectedEntity() != null && !moveMode){
                     
@@ -323,7 +334,7 @@ public class Game implements IAppLogic{
                     byte[] a = new byte[chars.capacity()];
                     for(int j = 0; j < chars.capacity(); j++)
                         a[j] = chars.get(j);
-                    
+
                     String x = new String(a, StandardCharsets.UTF_8);
 
                     File test = new File(x);
@@ -335,18 +346,18 @@ public class Game implements IAppLogic{
                             poll.update();
                             glfwPollEvents();
                         }
-        
+
                         glfwMakeContextCurrent(window.getWindowHandle());
-        
+
                         poll.cleanup();
-        
+
                         window.update();
 
                         switch(poll.getOutput()){
                             case 0: 
                                 m = scene.loadStaticModel(test.getName().substring(0, test.getName().indexOf('.')), x);
                                 break;
-                                case 1:
+                            case 1:
                                 m = scene.loadAnimModel(test.getName().substring(0, test.getName().indexOf('.')), x);
                                 break;
                             default:
@@ -515,8 +526,9 @@ public class Game implements IAppLogic{
         for (Model model : models) {
             List<Entity> entities = model.getEntityList();
             for (Entity entity : entities) {
-                modelMatrix.translate(entity.getPosition()).scale(entity.getScale());
-                for (RenderBuffers.MeshDrawData mesh : entity.getMeshDrawDataList()) {
+                if(entity.isVisible()){
+                    modelMatrix.translate(entity.getPosition()).scale(entity.getScale());
+                    for (RenderBuffers.MeshDrawData mesh : entity.getMeshDrawDataList()) {
                     Vector3f aabbMin = mesh.aabbMin();
                     min.set(aabbMin.x, aabbMin.y, aabbMin.z, 1.0f);
                     min.mul(modelMatrix);
@@ -524,12 +536,13 @@ public class Game implements IAppLogic{
                     max.set(aabMax.x, aabMax.y, aabMax.z, 1.0f);
                     max.mul(modelMatrix);
                     if (Intersectionf.intersectRayAab(center.x, center.y, center.z, mouseDir.x, mouseDir.y, mouseDir.z,
-                            min.x, min.y, min.z, max.x, max.y, max.z, nearFar) && nearFar.x < closestDistance) {
+                    min.x, min.y, min.z, max.x, max.y, max.z, nearFar) && nearFar.x < closestDistance) {
                         closestDistance = nearFar.x;
                         selectedEntity = entity;
                     }
                 }
                 modelMatrix.identity();
+                }
             }
         }
 

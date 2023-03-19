@@ -1,5 +1,7 @@
 package src.game;
 
+import java.util.ArrayList;
+
 import imgui.ImGui;
 import imgui.flag.ImGuiCond;
 import src.engine.IGuiInstance;
@@ -9,27 +11,23 @@ import src.engine.scene.Scene;
 
 public class GuiContainer implements IGuiInstance{
 
-    private LightControls lightControls;
-    private TextCheck textCheck;
-    private boolean lightConsumed, textConsumed;
+    private ArrayList<IGuiInstance> guis;
 
-    public GuiContainer(LightControls lC, TextCheck tC){
+    public GuiContainer(ArrayList<IGuiInstance> gs){
 
-        lightControls = lC;
-        textCheck = tC;
-
-        lightConsumed = false;
-
-        textConsumed = false;
+        guis = new ArrayList<>(gs);
 
     }
 
-    public GuiContainer(LightControls lC){
-        lightControls = lC;
+    public GuiContainer(IGuiInstance gui){
+
+        guis = new ArrayList<>();
+        guis.add(gui);
+
     }
 
-    public GuiContainer(TextCheck tC){
-        textCheck = tC;
+    public void addGui(IGuiInstance gui){
+        guis.add(gui);
     }
 
     @Override
@@ -41,13 +39,7 @@ public class GuiContainer implements IGuiInstance{
 
         ImGui.begin("Container");
 
-        if(lightControls != null){
-            lightControls.drawGuiComponent(scene);
-        }
-
-        if(textCheck != null){
-            textCheck.drawGuiComponent(scene, render);
-        }
+        drawGuiComponent(scene, render);
 
         ImGui.end();
         ImGui.endFrame();
@@ -56,17 +48,25 @@ public class GuiContainer implements IGuiInstance{
     }
 
     @Override
+    public void drawGuiComponent(Scene scene, Render render){
+
+        for(IGuiInstance gui : guis){
+            if(gui != null)
+                gui.drawGuiComponent(scene, render);
+        }
+
+    }
+
+    @Override
     public boolean handleGuiInput(Scene scene, Window window) {
-        
-        if(lightControls != null){
-            lightConsumed = lightControls.handleGuiInput(scene, window);
-        }
 
-        if(textCheck != null){
-            textConsumed = textCheck.handleGuiInput(scene, window);
-        }
+        boolean consumed = false;
+        for(IGuiInstance gui : guis)
+            if(gui.handleGuiInput(scene, window))
+                consumed = true;
 
-        return lightConsumed || textConsumed;
+        return consumed;
+
     }
     
 }

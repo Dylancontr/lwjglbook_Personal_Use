@@ -8,5 +8,7 @@ public interface IGuiInstance {
     void drawGui(Scene scene, Render render);
 
     boolean handleGuiInput(Scene scene, Window window);
+
+    void drawGuiComponent(Scene scene, Render render);
     
 }

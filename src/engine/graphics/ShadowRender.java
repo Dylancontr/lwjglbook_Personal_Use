@@ -5,6 +5,7 @@ import src.engine.scene.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryUtil;
 
 import static org.lwjgl.opengl.GL43.*;
@@ -94,7 +95,13 @@ public class ShadowRender {
         for (Model model : scene.getModelMap().values()) {
             List<Entity> entities = model.getEntityList();
             for (Entity entity : entities) {
-                uniformMap.setUniform("modelMatrices[" + entityIdx + "]", entity.getModelMatrix());
+                if(entity.isVisible())
+                    uniformMap.setUniform("modelMatrices[" + entityIdx + "]", entity.getModelMatrix());
+                else{
+                    Matrix4f temp = new Matrix4f();
+                    temp.scale(0f);
+                    uniformMap.setUniform("modelMatrices[" + entityIdx + "]", temp);
+                }
                 entityIdx++;
             }
         }

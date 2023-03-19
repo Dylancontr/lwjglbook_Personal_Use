@@ -65,6 +65,17 @@ public class DropFileLoadType implements IGuiInstance{
         ImGui.newFrame();
         ImGui.setNextWindowPos(0, 0, ImGuiCond.Always);
         ImGui.setNextWindowSize(450, 450);
+        
+        drawGuiComponent(scene, render);
+        
+        ImGui.end();
+        ImGui.endFrame();
+        ImGui.render();
+
+    }
+
+    @Override
+    public void drawGuiComponent(Scene scene, Render render){
 
         ImGui.begin("File type");
 
@@ -84,13 +95,8 @@ public class DropFileLoadType implements IGuiInstance{
             output = 2;
             glfwSetWindowShouldClose(window.getWindowHandle(), true);
         }
-        
-        ImGui.end();
-        ImGui.endFrame();
-        ImGui.render();
 
     }
-
 
     @Override
     public boolean handleGuiInput(Scene scene, Window window) {

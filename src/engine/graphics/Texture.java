@@ -15,7 +15,6 @@ public class Texture {
 
     public Texture(int width, int height, ByteBuffer buf){
 
-        texturePath = "";
         generateTexture(width, height, buf);
 
     }
@@ -58,7 +57,10 @@ public class Texture {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buf);
         glGenerateMipmap(GL_TEXTURE_2D);
+    }
 
+    public int getTextureId(){
+        return textureID;
     }
 
     public String getTexturePath(){

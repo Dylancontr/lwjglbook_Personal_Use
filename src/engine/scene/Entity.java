@@ -19,6 +19,7 @@ public class Entity {
     private Quaternionf rotation;
     private float scale;
     private AnimationData animationData;
+    private boolean visible;
     
     private List<MeshDrawData> drawData;
 
@@ -30,6 +31,7 @@ public class Entity {
         position = new Vector3f();
         rotation = new Quaternionf();
         scale = 1;
+        visible = true;
     }
 
     public Entity(Entity other){
@@ -44,6 +46,7 @@ public class Entity {
             this.animationData = null;
         else
             this.animationData = new AnimationData(other.getAnimationData());
+        visible = true;
     }
 
     public List<MeshDrawData> getMeshDrawDataList(){
@@ -166,6 +169,17 @@ public class Entity {
         if(m.getMeshDataList().size() != 0) drawData = m.getMeshDrawDataList();
     }
 
+    public boolean isVisible(){
+        return visible;
+    }
+
+    public void setVisible(boolean v){
+        visible = v;
+    }
+
+    public void toggleVisibility(){
+        visible = !visible;
+    }
 
     public void updateModelMatrix(){
         modelMatrix.translationRotateScale(position, rotation, scale);

@@ -3,9 +3,6 @@ package src.game;
 import static org.lwjgl.glfw.GLFW.*;
 
 import java.util.List;
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -15,9 +12,7 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.joml.Intersectionf;
-import org.lwjgl.PointerBuffer;
 import org.lwjgl.openal.AL11;
-import org.lwjgl.system.MemoryUtil;
 
 import src.engine.Engine;
 import src.engine.IAppLogic;
@@ -55,9 +50,8 @@ public class Game implements IAppLogic{
     private float lightAngle;
     private AnimationData animationData;
     private AnimationData animationData2;
-    private Entity bobEntity;
-    private Entity bobEntity2;
-
+    private Entity humanEntity;
+    private Entity humanEntity2;
 
     private SoundSource playerSoundSource;
     private SoundManager soundMgr;
@@ -67,10 +61,12 @@ public class Game implements IAppLogic{
 
     private float rotation;
 
-    private boolean moveMode;
+    private boolean moveMode, meshMode;
 
-    TextCheck textCheck;
-    LightControls lightControls;
+    private TextCheck textCheck;
+    private LightControls lightControls;
+
+    private long lastLeftClick;
 
     public static void main(String[] args) {
         Game main = new Game();
@@ -89,7 +85,6 @@ public class Game implements IAppLogic{
 
     @Override
     public void init(Window window, Scene scene, Render render) {
-
         String terrainModelId = "terrain";
         Model terrainModel = ModelLoader.loadModel(terrainModelId, "resources/models/terrain/terrain.obj",
                 scene.getTextureCache(), scene.getMaterialCache(), false);
@@ -99,32 +94,43 @@ public class Game implements IAppLogic{
         terrainEntity.updateModelMatrix();
         scene.addEntity(terrainEntity);
 
-        String bobModelId = "bobModel";
-        Model bobModel = ModelLoader.loadModel(bobModelId, "resources/models/human/human.md5mesh",
+        String humanID = "human";
+        Model humanModel = ModelLoader.loadModel(humanID, "resources/models/human/human.md5mesh",
                 scene.getTextureCache(), scene.getMaterialCache(), true);
+        scene.addModel(humanModel);
+        addAnimation(humanModel, "resources/models/human/TwistingHandWave.md5anim");
+        addAnimation(humanModel, "resources/models/human/JumpTest.md5anim");
+        
+        animationData = new AnimationData(humanModel.getAnimationList().get(0));
+        humanEntity = new Entity("HumanEntity", scene.getModelMap().get(humanID));
+        humanEntity.setScale(0.05f);
+        humanEntity.setAnimationData(animationData);
+    
+        setAnimation(scene, humanEntity, 0);
+
+        humanEntity.updateModelMatrix();
+
+        scene.addEntity(humanEntity);
+
+        humanEntity2 = new Entity("HumanEntity", scene.getModelMap().get(humanID));
+        humanEntity2.setPosition(2, 0, 0);
+        humanEntity2.setScale(0.025f);
+        animationData2 = new AnimationData(humanModel.getAnimationList().get(0));
+        humanEntity2.setAnimationData(animationData2);
+        humanEntity2.updateModelMatrix();
+        scene.addEntity(humanEntity2);
+
+        String bobID = "BobModel";
+        Model bobModel = ModelLoader.loadModel(bobID, "resources/models/bob/boblamp.md5mesh",
+            scene.getTextureCache(), scene.getMaterialCache(), true);
         scene.addModel(bobModel);
 
-        addAnimation(bobModel, "resources/models/human/TwistingHandWave.md5anim");
-        addAnimation(bobModel, "resources/models/human/JumpTest.md5anim");
-        
-        animationData = new AnimationData(bobModel.getAnimationList().get(0));
-        bobEntity = new Entity("bobEntity", scene.getModelMap().get(bobModelId));
-        bobEntity.setScale(0.05f);
-        bobEntity.setAnimationData(animationData);
-    
-        setAnimation(scene, bobEntity, 0);
-
+        Entity bobEntity = new Entity("BobEntity", scene.getModelMap().get(bobID));
+        bobEntity.setScale(0.1f);
+        bobEntity.setPosition(3, 0, 0);
+        bobEntity.setAnimationData(new AnimationData(bobModel.getAnimationList().get(0)));
         bobEntity.updateModelMatrix();
-
         scene.addEntity(bobEntity);
-
-        bobEntity2 = new Entity("bobEntity", scene.getModelMap().get(bobModelId));
-        bobEntity2.setPosition(2, 0, 0);
-        bobEntity2.setScale(0.025f);
-        animationData2 = new AnimationData(bobModel.getAnimationList().get(0));
-        bobEntity2.setAnimationData(animationData2);
-        bobEntity2.updateModelMatrix();
-        scene.addEntity(bobEntity2);
 
         Model cubeModel = ModelLoader.loadModel("cube-model", "resources/models/cube/cube.obj",
         scene.getTextureCache(), scene.getMaterialCache(), false);
@@ -191,15 +197,16 @@ public class Game implements IAppLogic{
         camera.addRotation((float) Math.toRadians(15.0f), (float) Math.toRadians(390.f));
 
         lightAngle = 45.001f;
-        initSounds(bobEntity.getPosition(), camera);
+        initSounds(humanEntity.getPosition(), camera);
+        
+        setupCallbacks(window, scene, render);
         
         lightControls = new LightControls(scene);
 
         textCheck = new TextCheck();
-
-
+        
         GuiContainer container = new GuiContainer(new ArrayList<IGuiInstance>(
-            Arrays.asList(lightControls, textCheck, new EntityList(scene.getTextureCache()))
+            Arrays.asList(lightControls, textCheck, new EntityList())
         ));
         
         scene.setGuiInstance(container);
@@ -207,6 +214,8 @@ public class Game implements IAppLogic{
         render.setupData(scene);
 
         moveMode = false;
+        meshMode = false;
+        lastLeftClick = System.currentTimeMillis();
     }
 
     private void initSounds(Vector3f position, Camera camera) {
@@ -233,8 +242,7 @@ public class Game implements IAppLogic{
 
     @Override
     public void input(Window window, Scene scene, long diffTimeMillis, boolean inputConsumed, Render render) {
-        
-        
+
         float move = diffTimeMillis * MOVEMENT_SPEED;
         Camera camera = scene.getCamera();
         
@@ -263,19 +271,19 @@ public class Game implements IAppLogic{
                 animationData.nextFrame();
             }else if(window.isKeyPressed(GLFW_KEY_O)){
                 try{
-                    setAnimation(scene, bobEntity, 0);
+                    setAnimation(scene, humanEntity, 0);
                 }catch(IndexOutOfBoundsException e){
                     e.printStackTrace();
                 }
             }else if(window.isKeyPressed(GLFW_KEY_P)){
                 try{
-                    setAnimation(scene, bobEntity, 1);
+                    setAnimation(scene, humanEntity, 1);
                 }catch(IndexOutOfBoundsException e){
                     e.printStackTrace();
                 }
             }else if(window.isKeyPressed(GLFW_KEY_L)){
                 try{
-                    setAnimation(scene, bobEntity, 2);
+                    setAnimation(scene, humanEntity, 2);
                 }catch(IndexOutOfBoundsException e){
                     e.printStackTrace();
                 }
@@ -290,97 +298,24 @@ public class Game implements IAppLogic{
                 }
             }
 
-            glfwSetKeyCallback(window.getWindowHandle(), (w, key, scanode, action, mods) ->{
-
-                boolean act = (action == GLFW_PRESS || action == GLFW_REPEAT);
-
-                if(key == GLFW_KEY_G && act && scene.getSelectedEntity() != null){
-                    moveMode = !moveMode;
-                }
-                
-                if(key == GLFW_KEY_V && act && scene.getSelectedEntity() != null){
-                    scene.getSelectedEntity().toggleVisibility();;
-                }
-
-
-                if(mods == GLFW_MOD_SHIFT && key == GLFW_KEY_D && act && scene.getSelectedEntity() != null && !moveMode){
-                    
-                    Entity newEnt = new Entity(scene.getSelectedEntity());
-                    newEnt.updateModelMatrix();
-                    scene.addEntity(newEnt);
-
-                    if(!scene.getModelMap().get((newEnt.getModelID())).isAnimated())
-                        render.dupStatic(newEnt, scene);
-                    else
-                        render.dupAnimated(newEnt, scene);
-
-                    scene.setSelectedEntity(newEnt);
-                    moveMode = true;
-                }
-
-                // if(mods == GLFW_MOD_CONTROL && key == GLFW_KEY_C && act){
-                    
-                // }
-
-            });
-
-            glfwSetDropCallback(window.getWindowHandle(), (w, count,  paths)->{
-
-                PointerBuffer pointers = MemoryUtil.memPointerBuffer(paths, count);
-
-                for(int i = 0; i < pointers.capacity(); i++){
-
-                    ByteBuffer chars = MemoryUtil.memByteBufferNT1Safe(pointers.get(i));
-                    byte[] a = new byte[chars.capacity()];
-                    for(int j = 0; j < chars.capacity(); j++)
-                        a[j] = chars.get(j);
-
-                    String x = new String(a, StandardCharsets.UTF_8);
-
-                    File test = new File(x);
-                    if(test.exists()){
-                        Model m;
-                        DropFileLoadType poll = new DropFileLoadType(window, test.getName());
-
-                        while(!poll.getShouldClose()){
-                            poll.update();
-                            glfwPollEvents();
-                        }
-
-                        glfwMakeContextCurrent(window.getWindowHandle());
-
-                        poll.cleanup();
-
-                        window.update();
-
-                        switch(poll.getOutput()){
-                            case 0: 
-                                m = scene.loadStaticModel(test.getName().substring(0, test.getName().indexOf('.')), x);
-                                break;
-                            case 1:
-                                m = scene.loadAnimModel(test.getName().substring(0, test.getName().indexOf('.')), x);
-                                break;
-                            default:
-                                m = null;
-                        }
-                        
-                        if (m != null)
-                            render.addObject(scene, m);
-                    }
-                }
-                
-            });
-
             MouseInput mouseInput = window.getMouseInput();
             if (mouseInput.isRightButtonPressed()) {
                 Vector2f displVec = mouseInput.getDisplVec();
                 camera.addRotation((float) Math.toRadians(-displVec.x * MOUSE_SENSITIVITY), (float) Math.toRadians(-displVec.y * MOUSE_SENSITIVITY));
             }
             
-            if (mouseInput.isLeftButtonPressed()) {
-                if(moveMode) moveMode = false;
-                else selectEntity(window, scene, mouseInput.getCurrentPos());
-            }
+            // if (mouseInput.isLeftButtonPressed()) {
+            //     if(moveMode) moveMode = false;
+            //     else{ 
+            //         if(!meshMode) selectEntity(window, scene, mouseInput.getCurrentPos());
+            //         if(mouseInput.isDoubleClick()){
+            //             if(!meshMode)
+            //                     if(scene.getSelectedEntity() != null)startMeshMode(scene);
+            //             else
+            //                 endMeshMode(scene);
+            //         }
+            //     }
+            // }
 
             if(moveMode){
                 Vector2f displVec = mouseInput.getDisplVec();
@@ -415,6 +350,75 @@ public class Game implements IAppLogic{
 
     }
 
+    private void setupCallbacks(Window window, Scene scene, Render render){
+
+        glfwSetKeyCallback(window.getWindowHandle(), (w, key, scanode, action, mods) ->{
+
+            boolean act = (action == GLFW_PRESS || action == GLFW_REPEAT) && !scene.getInputConsumed();
+
+            if(key == GLFW_KEY_G && act && scene.getSelectedEntity() != null){
+                moveMode = !moveMode;
+            }
+            
+            if(key == GLFW_KEY_V && act && scene.getSelectedEntity() != null){
+                scene.getSelectedEntity().toggleVisibility();;
+            }
+
+
+            if(mods == GLFW_MOD_SHIFT && key == GLFW_KEY_D && act && scene.getSelectedEntity() != null && !moveMode){
+                
+                Entity newEnt = new Entity(scene.getSelectedEntity());
+                newEnt.updateModelMatrix();
+                scene.addEntity(newEnt);
+
+                if(!scene.getModelMap().get((newEnt.getModelID())).isAnimated())
+                    render.dupStatic(newEnt, scene);
+                else
+                    render.dupAnimated(newEnt, scene);
+
+                scene.setSelectedEntity(newEnt);
+                moveMode = true;
+            }
+
+            // if(mods == GLFW_MOD_CONTROL && key == GLFW_KEY_C && act){
+                
+            // }
+
+        });
+
+        glfwSetDropCallback(window.getWindowHandle(), (w, count,  paths)->{
+
+            if(DropFileLoadType.activeProg == null){
+                DropFileLoadType poll = new DropFileLoadType(window, count, paths, scene);
+                poll.start();
+            }
+        });
+
+        glfwSetMouseButtonCallback(window.getWindowHandle(), (handle, button, action, mode) ->{
+            MouseInput mouseInput = window.getMouseInput();
+            boolean leftButtonPressed = button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS;
+            mouseInput.setLeftButtonPressed(leftButtonPressed);
+            boolean rightButtonPressed = button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS;
+            mouseInput.setRightButtonPressed(rightButtonPressed);
+
+            if(!scene.getInputConsumed()){
+                if(leftButtonPressed){
+                    if(moveMode) moveMode = false;
+                    if(!meshMode) selectEntity(window, scene, mouseInput.getCurrentPos());
+
+                    if(System.currentTimeMillis() - lastLeftClick < 200){
+                        if(!meshMode)
+                            startMeshMode(scene);
+                        else
+                            endMeshMode(scene);
+                    }
+
+                    lastLeftClick = System.currentTimeMillis();
+                }
+            }
+        });
+    }
+
     @Override
     public void update(Window window, Scene scene, long diffTimeMillis) {
         // animationData.nextFrame();
@@ -422,6 +426,8 @@ public class Game implements IAppLogic{
         //     animationData2.nextFrame();
         // }
 
+        if(meshMode) return;
+        
         for(Model m : scene.getAnimModelList())
         for(Entity e : m.getEntityList()){
             e.getAnimationData().nextFrame();
@@ -549,6 +555,18 @@ public class Game implements IAppLogic{
         scene.setSelectedEntity(selectedEntity);
         
     }
-    
 
+    private void startMeshMode(Scene scene){
+        if(scene.getSelectedEntity() == null) return;
+        meshMode = true;
+        scene.setMeshMode(meshMode);
+        if(scene.getSelectedEntity().getAnimationData() != null)
+            scene.getSelectedEntity().getAnimationData().resetAnimation();
+        
+    }
+
+    private void endMeshMode(Scene scene){
+        meshMode = false;
+        scene.setMeshMode(meshMode);
+    }
 }

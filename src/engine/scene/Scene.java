@@ -23,6 +23,8 @@ public class Scene {
     private Fog fog;
     private Entity selectedEntity;
     private MaterialCache materialCache;
+    private boolean meshMode, inputConsumed, guiRendering;
+    private ArrayList<ModelToLoadData> modelsToLoad;
 
     private List<Model> staticModels, animModels;
 
@@ -34,9 +36,15 @@ public class Scene {
         materialCache = new MaterialCache();
         camera = new Camera();
         fog = new Fog();
+        meshMode = false;
 
         staticModels = new ArrayList<>();
         animModels = new ArrayList<>();
+        modelsToLoad = new ArrayList<>();
+    }
+
+    public void addModelToLoad(ModelToLoadData data){
+        modelsToLoad.add(data);
     }
 
     public void addEntity(Entity entity){
@@ -285,5 +293,45 @@ public class Scene {
     public void setAnimModelList(List<Model> aM){
         animModels = aM;
     }
+
+    public boolean isMeshMode() {
+        return meshMode;
+    }
+
+    public void setMeshMode(boolean meshMode) {
+        this.meshMode = meshMode;
+    }
     
+
+    public boolean getInputConsumed(){
+        return inputConsumed;
+    }
+
+    public void setInputConsumed(boolean in){
+        inputConsumed = in;
+    }
+
+    public boolean isGuiRendering(){
+        return guiRendering;
+    }
+    
+    public void setGuiRendering(boolean status){
+        guiRendering = status;
+    }
+
+    public record ModelToLoadData(int type, String name, String file){
+        public int getType(){
+            return type;
+        }
+        public String getName(){
+            return name;
+        }
+        public String getFile(){
+            return file;
+        }
+    };
+
+    public ArrayList<ModelToLoadData> getModelsToLoad(){
+        return modelsToLoad;
+    }
 }

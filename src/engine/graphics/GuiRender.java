@@ -5,6 +5,7 @@ import imgui.type.ImInt;
 import org.joml.Vector2f;
 import src.engine.*;
 import src.engine.scene.Scene;
+import src.game.DropFileLoadType;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -78,7 +79,17 @@ public class GuiRender {
             return;
         }
 
+        if(DropFileLoadType.activeProg != null)
+        try{
+            DropFileLoadType.activeProg.wait();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+
         guiInstance.drawGui(scene, render);
+
+        if(DropFileLoadType.activeProg != null)
+            DropFileLoadType.activeProg.notify();
 
         shader.bind();
 

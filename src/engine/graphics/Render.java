@@ -86,7 +86,7 @@ public class Render{
 
         animationRender.render(scene, renderBuffers);
         shadowRender.render(scene, renderBuffers);
-        sceneRender.render(scene, renderBuffers, gBuffer);
+        sceneRender.render(scene, renderBuffers, gBuffer, this);
         lightRenderStart(window);
         lightsRender.render(scene, shadowRender, gBuffer);
         skyBoxRender.render(scene);
@@ -100,7 +100,7 @@ public class Render{
     }
 
     public void dupStatic(Entity entity, Scene scene){
-        renderBuffers.dupStaticModel(entity, scene);
+        // renderBuffers.dupStaticModel(entity, scene);
         sceneRender.updateData(scene, entity, false);
         shadowRender.updateData(scene, entity);
     }

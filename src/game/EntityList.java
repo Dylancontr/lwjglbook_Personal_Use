@@ -10,14 +10,12 @@ import src.engine.MouseInput;
 import src.engine.Window;
 import src.engine.graphics.Model;
 import src.engine.graphics.Render;
-import src.engine.graphics.Texture;
-import src.engine.graphics.TextureCache;
 import src.engine.scene.Entity;
 import src.engine.scene.Scene;
 
 public class EntityList implements IGuiInstance{
 
-    public EntityList(TextureCache tc){
+    public EntityList(){
 
     }
 

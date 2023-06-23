@@ -30,6 +30,7 @@ struct Material
 uniform sampler2D txtSampler[MAX_TEXTURES];
 uniform Material materials[MAX_MATERIALS];
 vec3 calcNormal(int, vec3, vec3, vec3, vec2);
+uniform int meshMode;
 
 void main() {
     
@@ -50,7 +51,10 @@ void main() {
     buffAlbedo   = vec4(diffuse.xyz, material.reflectance);
     buffNormal   = vec4(0.5 * normal + 0.5, 1.0);
     if(selectedEntity > 0){
-        buffAlbedo = vec4((buffAlbedo.x)/2, (buffAlbedo.y)/2, 1, 1);
+        if(meshMode == 0)
+            buffAlbedo = vec4((buffAlbedo.x)/2, (buffAlbedo.y)/2, 1, 1);
+        else
+            buffAlbedo = vec4(1, (buffAlbedo.x)/2, (buffAlbedo.y)/2, 1);
     }
     buffSpecular = specular;
 }

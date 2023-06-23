@@ -3,11 +3,36 @@ package src.engine.graphics;
 import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryUtil;
 import src.engine.scene.*;
+import src.game.DropFileLoadType;
+
 import org.tinylog.Logger;
 
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import static org.lwjgl.opengl.GL11.GL_BLEND;
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_TRIANGLES;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
+import static org.lwjgl.opengl.GL11.glClear;
+import static org.lwjgl.opengl.GL11.glDisable;
+import static org.lwjgl.opengl.GL11.glEnable;
+import static org.lwjgl.opengl.GL11.glViewport;
+import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
+import static org.lwjgl.opengl.GL13.glActiveTexture;
+import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
+import static org.lwjgl.opengl.GL15.glBindBuffer;
+import static org.lwjgl.opengl.GL15.glBufferData;
+import static org.lwjgl.opengl.GL15.glDeleteBuffers;
+import static org.lwjgl.opengl.GL15.glGenBuffers;
+import static org.lwjgl.opengl.GL15.glGetBufferSubData;
+import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
+import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
+import static org.lwjgl.opengl.GL30.GL_DRAW_FRAMEBUFFER;
+import static org.lwjgl.opengl.GL30.glBindFramebuffer;
+import static org.lwjgl.opengl.GL30.glBindVertexArray;
+import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
 import static org.lwjgl.opengl.GL43.*;
 
 public class SceneRender {
@@ -96,9 +121,42 @@ public class SceneRender {
             uniformsMap.createUniform("modelMatrices[" + i + "]");
         }
 
+        uniformsMap.createUniform("meshMode");
+
     }
 
-    public void render(Scene scene, RenderBuffers renderBuffers, GBuffer gBuffer) {
+    public void render(Scene scene, RenderBuffers renderBuffers, GBuffer gBuffer, Render render) {
+
+        if(DropFileLoadType.activeProg != null)
+            try{
+                DropFileLoadType.activeProg.wait();
+            }catch(InterruptedException e){
+                e.printStackTrace();
+            }
+
+        while(!scene.getModelsToLoad().isEmpty()){
+            Scene.ModelToLoadData data = scene.getModelsToLoad().get(0);
+            Model m;
+            switch(data.getType()){
+                case 0: 
+                    m = scene.loadStaticModel(data.getName(), data.getFile());
+                    break;
+                case 1:
+                    m = scene.loadAnimModel(data.getName(), data.getFile());
+                    break;
+                default:
+                    m = null;
+                    break;
+                }
+            
+            if (m != null)
+                render.addObject(scene, m);
+
+            scene.getModelsToLoad().remove(0);
+        }
+
+        if(DropFileLoadType.activeProg != null)
+            DropFileLoadType.activeProg.notify();
 
         if(scene.getModelMap().size() != currEntityMapSize){
             setupData(scene);
@@ -182,6 +240,8 @@ public class SceneRender {
                     drawElement++;
                 }
         }
+
+        uniformsMap.setUniform("meshMode", scene.isMeshMode() ? 1 : 0);
 
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, animRenderBufferHandle);
         glBindVertexArray(renderBuffers.getAnimVaoID());

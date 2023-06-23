@@ -58,6 +58,7 @@ public class Engine{
 
             if (targetFps <= 0 || deltaFps >= 1) {
                 boolean inputConsumed = iGuiInstance != null ? iGuiInstance.handleGuiInput(scene, window) : false;
+                scene.setInputConsumed(inputConsumed);
                 appLogic.input(window, scene, now - initialTime, inputConsumed, render);
             }
 

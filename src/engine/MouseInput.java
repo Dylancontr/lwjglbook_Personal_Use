@@ -7,7 +7,8 @@ import static org.lwjgl.glfw.GLFW.*;
 public class MouseInput {
     
     private Vector2f currentPos, displVec, previousPos;
-    private boolean inWindow, leftButtonPressed, rightButtonPressed;
+    private boolean inWindow, leftButtonPressed, rightButtonPressed, doubleClick;
+    // private long lastLeftClick;
 
     public MouseInput(long windowHandle){
 
@@ -17,6 +18,8 @@ public class MouseInput {
         leftButtonPressed = false;
         rightButtonPressed = false;
         inWindow = false;
+        doubleClick = false;
+        // lastLeftClick = System.currentTimeMillis();
 
         glfwSetCursorPosCallback(windowHandle, (handle, xpos, ypos) ->{
             
@@ -27,12 +30,20 @@ public class MouseInput {
 
         glfwSetCursorEnterCallback(windowHandle, (handle, entered) -> inWindow = entered);
 
-        glfwSetMouseButtonCallback(windowHandle, (handle, button, action, mode) ->{
+        // glfwSetMouseButtonCallback(windowHandle, (handle, button, action, mode) ->{
 
-            leftButtonPressed = button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS;
-            rightButtonPressed = button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS;
+        //     leftButtonPressed = button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS;
+        //     if(leftButtonPressed){
+        //         System.out.println(System.currentTimeMillis() - lastLeftClick);
+        //         if(!doubleClick && System.currentTimeMillis() - lastLeftClick < 200)
+        //             doubleClick = true;
+        //         else
+        //             doubleClick = false;
+        //         lastLeftClick = System.currentTimeMillis();
+        //     }
+        //     rightButtonPressed = button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS;
 
-        });
+        // });
     }
 
     public Vector2f getCurrentPos(){
@@ -73,8 +84,19 @@ public class MouseInput {
         return leftButtonPressed;
     }
 
+    public boolean isDoubleClick(){
+        return doubleClick;
+    }
+
     public boolean isRightButtonPressed() {
         return rightButtonPressed;
     }
+
+    public void setRightButtonPressed(boolean in){
+        rightButtonPressed = in;
+    }
     
+    public void setLeftButtonPressed(boolean in){
+        leftButtonPressed = in;
+    }
 }

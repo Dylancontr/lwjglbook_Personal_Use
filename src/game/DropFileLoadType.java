@@ -7,64 +7,55 @@ import imgui.type.ImString;
 import src.engine.IGuiInstance;
 import src.engine.MouseInput;
 import src.engine.Window;
-import src.engine.graphics.GBuffer;
-import src.engine.graphics.GuiRender;
 import src.engine.graphics.Render;
-import src.engine.graphics.RenderBuffers;
-import src.engine.graphics.SceneRender;
 import src.engine.scene.Scene;
-import static org.lwjgl.glfw.GLFW.*;
 
 import org.joml.Vector2f;
 
-public class DropFileLoadType implements IGuiInstance{
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.PointerBuffer;
 
-    private int output;
+public class DropFileLoadType extends Thread implements IGuiInstance{
+
+    private int output, count;
+    private long paths;
     private Window window;
-    private GuiRender gRender;
-    private SceneRender sRender;
-    private RenderBuffers rBuffer;
-    private GBuffer gBuffer;
-    private Scene scene;
-    private Render render;
     private String name;
+    private Scene scene;
+
+    public static DropFileLoadType activeProg = null;
 
     public void cleanup(){
-        glfwDestroyWindow(window.getWindowHandle());
+        ((GuiContainer)scene.getGuiInstance()).removeGui(this);
+        activeProg = null;
     }
 
-    public DropFileLoadType(Window parent, String name){
+    public DropFileLoadType(Window w, int c, long p, Scene s){
+        if(!(s.getGuiInstance() instanceof GuiContainer) && activeProg != null) return;
+        count = c;
+        paths = p;
         output = -1;
-        this.name = name;
-        Window.WindowOptions opts = new Window.WindowOptions();
-        opts.antiAliasing = true;
-        opts.height = 500;
-        opts.width = 500;
-        window = new Window("File Type", opts, ()->{
-            return null;
-        }, parent);
-
-        scene = new Scene(500, 500);
-        render = new Render(window);
-        scene.setGuiInstance(this);
-        gRender = new GuiRender(window);
-        gRender.render(scene, render);
-        rBuffer = new RenderBuffers();
-        sRender = new SceneRender();
-        gBuffer = new GBuffer(window);
-        drawGui(scene, render);
+        name = "temp";
+        window = w;
         window.update();
+        scene = s;
+        while(scene.isGuiRendering());
+        ((GuiContainer)s.getGuiInstance()).addGui(this);
     }
     public int getOutput(){
         return output;
     }
 
-
     @Override
     public void drawGui(Scene scene, Render render) {
+
         ImGui.newFrame();
         ImGui.setNextWindowPos(0, 0, ImGuiCond.Always);
         ImGui.setNextWindowSize(450, 450);
+        ImGui.begin("File");
         
         drawGuiComponent(scene, render);
         
@@ -77,25 +68,26 @@ public class DropFileLoadType implements IGuiInstance{
     @Override
     public void drawGuiComponent(Scene scene, Render render){
 
+        ImGui.setNextWindowPos(450, 0, ImGuiCond.Always);
+        ImGui.setNextWindowSize(450, 450);
         ImGui.begin("File type");
 
         ImGui.inputText("File to Load", new ImString(name));
         
         if(ImGui.button("Static Model")){
             output = 0;
-            glfwSetWindowShouldClose(window.getWindowHandle(), true);
         }
 
         if(ImGui.button("Animated Model")){
             output = 1;
-            glfwSetWindowShouldClose(window.getWindowHandle(), true);
         }
 
         if(ImGui.button("Cancel")){
             output = 2;
-            glfwSetWindowShouldClose(window.getWindowHandle(), true);
         }
 
+        ImGui.end();
+        
     }
 
     @Override
@@ -114,13 +106,35 @@ public class DropFileLoadType implements IGuiInstance{
 
     public void update(){
         handleGuiInput(scene, window);
-        sRender.render(scene, rBuffer, gBuffer);
-        gRender.render(scene, render);
-        window.update();
     }
 
-    public boolean getShouldClose(){
-        return window.windowShouldClose();
+    @Override
+    public void run(){
+        PointerBuffer pointers = MemoryUtil.memPointerBuffer(paths, count);
+
+        for(int i = 0; i < pointers.capacity(); i++){
+
+            ByteBuffer chars = MemoryUtil.memByteBufferNT1Safe(pointers.get(i));
+            byte[] codedFileName = new byte[chars.capacity()];
+            for(int j = 0; j < chars.capacity(); j++)
+                codedFileName[j] = chars.get(j);
+
+            String fileName = new String(codedFileName, StandardCharsets.UTF_8);
+
+            File test = new File(fileName);
+            if(test.exists()){
+                name = test.getName().substring(0, test.getName().indexOf('.'));
+
+                while(output == -1){
+                    update();
+                }
+                scene.addModelToLoad(new Scene.ModelToLoadData(getOutput(), name, fileName));
+            }else{
+                System.out.println("Could not find file " + fileName);
+            }
+            output = -1;
+        }
+        cleanup();
     }
 
 }

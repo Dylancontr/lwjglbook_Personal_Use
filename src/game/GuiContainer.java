@@ -30,6 +30,10 @@ public class GuiContainer implements IGuiInstance{
         guis.add(gui);
     }
 
+    public void removeGui(IGuiInstance gui){
+        guis.remove(gui);
+    }
+
     @Override
     public void drawGui(Scene scene, Render render) {
 

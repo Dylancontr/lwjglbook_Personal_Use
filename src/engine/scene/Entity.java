@@ -32,6 +32,7 @@ public class Entity {
         rotation = new Quaternionf();
         scale = 1;
         visible = true;
+        animationData = null;
     }
 
     public Entity(Entity other){

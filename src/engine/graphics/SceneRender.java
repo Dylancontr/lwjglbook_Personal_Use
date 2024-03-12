@@ -134,27 +134,30 @@ public class SceneRender {
                 e.printStackTrace();
             }
 
-        while(!scene.getModelsToLoad().isEmpty()){
-            Scene.ModelToLoadData data = scene.getModelsToLoad().get(0);
-            Model m;
-            switch(data.getType()){
-                case 0: 
-                    m = scene.loadStaticModel(data.getName(), data.getFile());
-                    break;
-                case 1:
-                    m = scene.loadAnimModel(data.getName(), data.getFile());
-                    break;
-                default:
-                    m = null;
-                    break;
-                }
-            
-            if (m != null)
-                render.addObject(scene, m);
+        if(scene.isLoadListAvailable().tryAcquire())
+        {
+            while(!scene.getModelsToLoad().isEmpty()){
+                Scene.ModelToLoadData data = scene.getModelsToLoad().get(0);
+                Model m;
+                switch(data.getType()){
+                    case 0: 
+                        m = scene.loadStaticModel(data.getName(), data.getFile());
+                        break;
+                    case 1:
+                        m = scene.loadAnimModel(data.getName(), data.getFile());
+                        break;
+                    default:
+                        m = null;
+                        break;
+                    }
+                
+                if (m != null)
+                    render.addObject(scene, m);
 
-            scene.getModelsToLoad().remove(0);
+                scene.getModelsToLoad().remove(0);
+            }
+            scene.isLoadListAvailable().release();
         }
-
         if(DropFileLoadType.activeProg != null)
             DropFileLoadType.activeProg.notify();
 

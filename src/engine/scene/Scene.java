@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 import src.engine.IGuiInstance;
 import src.engine.graphics.MaterialCache;
@@ -27,7 +28,8 @@ public class Scene {
     private ArrayList<ModelToLoadData> modelsToLoad;
 
     private List<Model> staticModels, animModels;
-
+    private final Semaphore loadListAvail;
+    
     public Scene(int width, int height) {
 
         modelMap = new HashMap<>();
@@ -37,6 +39,7 @@ public class Scene {
         camera = new Camera();
         fog = new Fog();
         meshMode = false;
+        loadListAvail = new Semaphore(1, true);
 
         staticModels = new ArrayList<>();
         animModels = new ArrayList<>();
@@ -199,14 +202,14 @@ public class Scene {
 
         Entity e = new Entity(id, m);
 
-        addEntity(e);
-
-        m = modelMap.get(e.getModelID());
         AnimationData animationData = new AnimationData(m.getAnimationList().get(0));
         e.setAnimationData(animationData);
         e.updateModelMatrix();
 
+        addEntity(e);
+
         selectedEntity = e;
+        
         return m;
     }
 
@@ -330,6 +333,10 @@ public class Scene {
             return file;
         }
     };
+
+    public Semaphore isLoadListAvailable(){
+        return loadListAvail;
+    }
 
     public ArrayList<ModelToLoadData> getModelsToLoad(){
         return modelsToLoad;

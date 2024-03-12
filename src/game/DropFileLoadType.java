@@ -128,7 +128,14 @@ public class DropFileLoadType extends Thread implements IGuiInstance{
                 while(output == -1){
                     update();
                 }
+
+                try {
+                    scene.isLoadListAvailable().acquire();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 scene.addModelToLoad(new Scene.ModelToLoadData(getOutput(), name, fileName));
+                scene.isLoadListAvailable().release();
             }else{
                 System.out.println("Could not find file " + fileName);
             }

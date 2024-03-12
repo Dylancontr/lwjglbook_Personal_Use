@@ -30,8 +30,6 @@ public class RenderBuffers {
 
     private int boneBufferSize;
     private int animBufferSize;
-    private int bindingPoseOffset;
-    private int weightsOffset;
     private int poseMeshSize;
 
     private int chunkBindingPoseOffset = 0;
@@ -87,8 +85,8 @@ public class RenderBuffers {
         int textureCoordsSize = 0;
         int indicesSize = 0;
         int offset = 0;
-        bindingPoseOffset = 0;
-        weightsOffset = 0;
+        int bindingPoseOffset = 0;
+        int weightsOffset = 0;
         chunkBindingPoseOffset = 0;
         chunkWeightsOffset = 0;
 
@@ -121,8 +119,8 @@ public class RenderBuffers {
                     offset = positionsSize / 3;
                 }
             }
-            chunkBindingPoseOffset += bindingPoseOffset;
-            chunkWeightsOffset += weightsOffset;
+            chunkBindingPoseOffset = bindingPoseOffset;
+            chunkWeightsOffset = weightsOffset;
 
         }
 
@@ -194,14 +192,14 @@ public class RenderBuffers {
 
         int meshesSize = 0;
         int verticesSize = 0;
+        int weightsOffset = chunkWeightsOffset;
+        int bindingPoseOffset = chunkBindingPoseOffset;
 
         for(Entity entity : model.getEntityList()){
             entity.setupDone();
         }
 
         for (Entity entity : entities) {
-            bindingPoseOffset = chunkBindingPoseOffset;
-            weightsOffset = chunkWeightsOffset;
             List<RenderBuffers.MeshDrawData> meshDrawDataList = model.getMeshDrawDataList();
 
             for (MeshData meshData : model.getMeshDataList()) {
@@ -226,8 +224,8 @@ public class RenderBuffers {
             }
 
         }
-        chunkBindingPoseOffset += bindingPoseOffset;
-        chunkWeightsOffset += weightsOffset;
+        chunkBindingPoseOffset = bindingPoseOffset;
+        chunkWeightsOffset = weightsOffset;
 
         FloatBuffer meshesBuffer = MemoryUtil.memAllocFloat(animArrOffset);
         animArrOffset += meshesSize/(Float.SIZE/Byte.SIZE);

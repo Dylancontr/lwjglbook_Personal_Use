@@ -116,8 +116,10 @@ public class Render{
             renderBuffers.addStaticModel(model);
         else
             renderBuffers.addAnimModel(model);
-        for(Entity entity : model.getEntityList())
+        for(Entity entity : model.getEntityList()){
             sceneRender.updateData(scene, entity, model.isAnimated());
+            shadowRender.updateData(scene, entity);
+        }
     }
 
     public void setupData(Scene scene) {
